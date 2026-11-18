@@ -1,0 +1,45 @@
+aux_weight: 0.1
+data:
+  external_meta_path: "${EXTERNAL_CSV}"
+  grade_label: grade
+  img_size: 448
+  input_label: image_path
+  meta_path: "${DETECTION_CSV}"
+  n_channels: 3
+  target_label: label
+desc: dinov3_vitl16_linear
+dinov3_repo: "${DINOV3_REPO}"
+enc_name: dinov3_vitl16
+ft:
+  method: fast_linear
+n_grades: 5
+num_classes: 1
+pretrained_root: "${PRETRAINED_ROOT}"
+save_root: "${SAVE_ROOT}"
+seed: 42
+select_metric: 0_auc
+training:
+  amp_dtype: auto
+  batch_size: 256
+  check_freq: 10
+  curve_freq: 5
+  early_stop_patience: 7
+  enable_amp: true
+  epochs: 80
+  eval_freq: 1
+  label_smoothing: 0.1
+  lr: 0.001
+  lr_decay_rate: 0.1
+  num_workers: 8
+  optim: AdamW
+  prefetch_factor: 4
+  save_freq: 1
+  save_last_only: true
+  save_trainable_only: true
+  warmup: false
+  warmup_epochs: 0
+  weight_decay: 1.0e-06
+use_aux: true
+use_wandb: false
+wandb_entity: "${WANDB_ENTITY}"
+wandb_project: RFI-DR

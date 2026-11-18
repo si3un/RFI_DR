@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# never commit data, weights or results
+*.pth
+*.pt
+*.ckpt
+*.npy
+*.npz
+outputs/
+data_local/
+snu_data/
+*.csv
+!configs/**/*.csv
+
+# figure outputs
+figures/*.png
+figures/*.pdf
