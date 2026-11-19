@@ -1,8 +1,8 @@
 """
-models/classifier.py - shared classification wrapper (DR customisation)
+models/classifier.py - shared classification wrapper.
 
-In the reference code each backbone builder attaches `model.head = nn.Linear(...)` directly and
-relies on the backbone's own forward_head (pooling). Our task, however, needs
+A plain backbone builder would attach `model.head = nn.Linear(...)` directly and rely on the backbone's
+own forward_head (pooling). This task, however, needs
   (1) an aux grade head (multi-task: referable BCE + grade CE)
   (2) GAP (global average pooling) instead of the CLS token for linear probing
       -> to fix the problem where frozen linear probes of the MAE family (retfound_mae, mae) using
@@ -31,7 +31,7 @@ def pool_features(feats, pool: str, num_prefix_tokens: int = 1):
       - [B, D] tensor: already pooled, returned as-is
     pool:
       - 'gap'   : mean of patch tokens (required for MAE-family linear probes; applied uniformly to all backbones)
-      - 'token' : CLS token (same option as the reference code's default)
+      - 'token' : CLS token
     """
     if isinstance(feats, dict):
         if pool == 'token':

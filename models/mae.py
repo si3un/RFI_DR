@@ -1,8 +1,7 @@
 """
 models/mae.py - plain MAE ViT-L/16 (ImageNet MAE pretraining, timm)
 
-A backbone not present in the reference code. Ports server_code's 'mae' (= timm vit_large_patch16_224.mae)
-to the same wrapper structure. Like RETFound_mae it is MAE-family, so GAP pooling (cfg.pool='gap')
+timm vit_large_patch16_224.mae in the same wrapper structure as the other backbones. Like RETFound_mae it is MAE-family, so GAP pooling (cfg.pool='gap')
 is recommended for linear probing.
 """
 from pathlib import Path

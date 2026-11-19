@@ -1,8 +1,8 @@
 """
 gen_saliency_attn.py — generates **attention-rollout** saliency for DR external TPs
-(instead of the GradCAM in gen_saliency.py, uses the ViT attention rollout from the 2025/2026 notebooks)
+(gradient-weighted ViT attention rollout)
 
-Method (port of the notebook's ViTGradCamRollout):
+Method:
   - capture each block's self-attention probabilities A[B,H,N,N] via a manual reimplementation (bypasses xformers → works for DINOv2/v3 too)
   - grad_rollout (default): backward from the positive logit → per-block M=relu(A·dScore/dA), mean over heads, matmul rollout across blocks
     pure_rollout: rollout with M=relu(A) only, no gradient (pure attention map)

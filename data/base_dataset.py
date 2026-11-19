@@ -1,7 +1,5 @@
 """
-data/base_dataset.py - glaucoma/DR detection dataset (DR customisation)
-
-Port of server_code's DetectionDataset to the cfg-based structure of the reference code.
+data/base_dataset.py - CSV-driven fundus image dataset for DR classification.
 
 CSV contract:
   - image path column : cfg.data.input_label   (default 'image_path', absolute or relative to data_root)
