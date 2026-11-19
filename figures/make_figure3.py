@@ -1,5 +1,5 @@
 """
-figure3_maps.py - Figure 3 and Supplementary Figure S2: representative individual and consensus saliency maps.
+make_figure3.py - Figure 3 and Supplementary Figure S2: representative individual and consensus saliency maps.
 
 Rows = dataset (e-Ophtha / IDRiD / FGADR), columns = [fundus + lesion contours | individual x3 | consensus].
   * Case selection: in each dataset, the image whose "per-image mean consensus Dice" is closest to the dataset median
@@ -16,7 +16,7 @@ Inputs:
   --sal_ms       {ds}_saliency_ms8   parent of these roots (outputs)   consensus inputs
   --roots        3 dataset roots (order: eophtha idrid fgadr), same as threshold_optimal_k
 Usage:
-  python interpreters/figure3_maps.py --thr_dir outputs/threshold_analysis_002 \
+  python figures/make_figure3.py --thr_dir outputs/threshold_analysis_002 \
       --roots $EOPHTHA_ROOT $IDRID_SEG_ROOT <FGADR_ROOT> \
       --model_roots models/dr_clean models/ckpts_aux --sim_csv outputs/model_similarity_summary.csv \
       --out_dir outputs/paper_figures
@@ -24,7 +24,7 @@ Usage:
 import os, sys, glob, argparse
 import numpy as np, pandas as pd
 from scipy.stats import rankdata
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "interpreters"))   # helper modules
 import snu_common as C
 import snu_consensus_lesion as SC
 import snu_localization as L

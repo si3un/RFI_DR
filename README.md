@@ -117,7 +117,7 @@ its header.
 | 5c. Pairwise comparisons | `interpreters/table3_pairwise.py` | Results |
 | 5d. Correlations of CoSA and AUROC with Dice; leave-one-out summaries | `analysis/cosa_correlations.py` | Results, Supp. Table S6 |
 | 6. Model selection and its threshold sensitivity | `analysis/selection_rule.py` | Results, Table 3 |
-| 7. Figures | `figures/make_figure1.py`, `figures/make_figure2.py`, `interpreters/figure3_maps.py` (Figure 3, Supp. Figure S2) | Figures 1-3, Supp. Figure S2 |
+| 7. Figures | `figures/make_figure1.py`, `figures/make_figure2.py`, `figures/make_figure3.py` (Figure 3, Supp. Figure S2) | Figures 1-3, Supp. Figure S2 |
 
 Example (Table 3):
 
@@ -144,7 +144,7 @@ trainers/         training loop (DDP/AMP), metrics, run records
 scripts/          run.sh (one config), run_dr.sh (all configs), weight download / CSV helpers
 interpreters/     saliency maps, consensus map, lesion localization, CoSA, classification statistics
 analysis/         small scripts that recompute numbers from saved result files (no images or models needed)
-figures/          Figure 1 (schematic) and Figure 2
+figures/          Figures 1-3 and Supplementary Figure S2
 demo/             CoSA demo on synthetic saliency maps
 ```
 
