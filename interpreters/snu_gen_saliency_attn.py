@@ -2,7 +2,7 @@
 snu_gen_saliency_attn.py — generates **attention-rollout** saliency for the annotated positives (21 trained configurations)
 
 Same structure and storage format as snu_gen_saliency.py (GradCAM); only the saliency computation is
-replaced with the ViT attention rollout from the 2025/2026 notebooks (same engine as gen_saliency_attn.py).
+replaced with the gradient-weighted ViT attention rollout (same engine as gen_saliency_attn.py).
   - grad_rollout (default): attention rollout weighted by positive-logit gradients (class-discriminative)
   - pure_rollout    : pure attention rollout without gradients
 Storage: [0,1] min-max within the FOV (r=0.49) (same as the GradCAM version) → used as is by snu_lesion_robust/snu_consensus_lesion.
