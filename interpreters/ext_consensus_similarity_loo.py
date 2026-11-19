@@ -22,7 +22,11 @@ Resolution --sp_size:
   448  full resolution used in the paper (large memory; hours)
 
 Usage (paper setting):
-  python interpreters/ext_consensus_similarity_loo.py --rule arith_trim2 --targets pool     --datasets aptos deepdrid messidor2 --auc_min 0.92 --sp_size 448     --sal_root $OUTPUT_ROOT/saliency_attn --cons_sal_root $OUTPUT_ROOT/saliency_attn     --model_roots $SAVE_ROOT/dr_clean $SAVE_ROOT/ckpts_aux     --out_dir $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2
+  python interpreters/ext_consensus_similarity_loo.py --rule arith_trim2 --targets pool \
+    --datasets aptos deepdrid messidor2 --auc_min 0.92 --sp_size 448 \
+    --sal_root $OUTPUT_ROOT/saliency_attn --cons_sal_root $OUTPUT_ROOT/saliency_attn \
+    --model_roots $SAVE_ROOT/dr_clean $SAVE_ROOT/ckpts_aux \
+    --out_dir $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2
 """
 import os, sys, glob, argparse
 import numpy as np, pandas as pd
