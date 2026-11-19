@@ -7,8 +7,7 @@ Reads the per-case files written by interpreters/eval_consensus_localization.py
 
 Usage:
   python analysis/supp_s7_norm_trim.py \
-      --per_case "$OUTPUT_ROOT/consensus_rules_v5b_means/*_rules_per_case.csv" \
-                 "$OUTPUT_ROOT/consensus_rules_v5c_means/*_rules_per_case.csv" \
+      --per_case "$OUTPUT_ROOT/consensus_localization/*_rules_per_case.csv" \
       --out $OUTPUT_ROOT/supp_s7_norm_trim.csv
 """
 import argparse

@@ -5,9 +5,10 @@ image-level bootstrap 95% CIs (2,000 resamples, seed 42; each image resampled wi
 plus the reference rows (random reference, lesion-location reference, perfect score using saliency resolution)
 taken from baseline_avgmask_patchceiling.py. No maps are recomputed.
 
-Usage (SNU):
-  python interpreters/supp_table_s5_dice.py --per_case "outputs/consensus_rules_ss/*_rules_per_case.csv" \
-      "outputs/consensus_rules_sweep2_attn/*_rules_per_case.csv" --consensus "GeoMean drop4" \
+Usage:
+  python interpreters/supp_table_s5_dice.py \
+      --per_case "outputs/individual_localization/*_rules_per_case.csv" \
+                 "outputs/consensus_localization/*_rules_per_case.csv" --consensus "UnitSum-Arith-T2x2" \
       --baseline outputs/baseline_v1/baseline_summary.csv --out outputs/supp_table_s5_dice.csv
 """
 import glob, argparse
