@@ -103,7 +103,7 @@ def flat_mean(fn, pool, cams, fidx, fov):
 
 
 def relboost(fn, best8, lin, ft, cams, fidx, fov):
-    """(Reference only) previous lineage-based RelBoost — 8→4 lineage centrality + 2-of-4."""
+    """(Reference only) lineage-based RelBoost — 8→4 lineage centrality + 2-of-4."""
     lm = CC.lineage_maps(fn, best8, lin, ft, cams, fidx)
     if not lm or len(lm) < 2:
         return None
@@ -216,7 +216,7 @@ def main():
         for k, v in pools.items():
             for meth, mp in pool_variants(fn, v, cams, fidx, fov).items():
                 d[f"{meth}/{k}"] = mp
-        # previous lineage (best8) for reference: no weighting/boost (FlatMean) vs final (centrality+2of4)
+        # lineage (best8) reference: no weighting/boost (FlatMean) vs final (centrality+2of4)
         lm = CC.lineage_maps(fn, best8, lin, ft, cams, fidx)
         if lm and len(lm) >= 2:
             gk = sorted(lm); raw = [lm[g] for g in gk]; Rk = [CC.rank_in_fov(lm[g], fov) for g in gk]
@@ -260,10 +260,10 @@ def main():
             cm = erx_metrics(cam, Lm, fov)
             if cm:
                 cont_rows.append(dict(image_id=fn, map_name=mp, lesion_type=lt, **cm))
-                # also add to ALL per lesion item, same as the existing ALL aggregation
+                # also add to ALL per lesion item, same as the ALL aggregation
                 cont_rows.append(dict(image_id=fn, map_name=mp, lesion_type="ALL", **cm))
 
-            # existing top-K% threshold sweep
+            # top-K% threshold sweep
             for k in KGRID:
                 m = metrics_at(topk_mask(cam, fov, k), Lm)
                 if m:

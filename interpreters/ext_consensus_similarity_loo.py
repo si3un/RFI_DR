@@ -55,7 +55,7 @@ def bpretty(name):
     return name
 
 
-# ── consensus formula (same as RFI) ─────────────────────────────
+# ── consensus formulas ─────────────────────────────
 def mm(cam, fov):
     v = np.maximum(cam, 0.0) * fov
     vals = v[fov]
@@ -78,7 +78,7 @@ def norm1(a, fov):
 
 
 def hybrid_mean_q75(Rk, fov):
-    """0.5*rank(RankMean) + 0.5*rank(Q75). Same as RFI consensus_newaxis_eval."""
+    """0.5*rank(RankMean) + 0.5*rank(Q75) (alternative rule; same as consensus_newaxis_eval.hybrid_mean_q75)."""
     K = Rk.shape[0]
     srt = np.sort(Rk, axis=0)
     mean = Rk.mean(axis=0)
@@ -190,9 +190,9 @@ def main():
     ap.add_argument("--out_dir", required=True)
     ap.add_argument("--auc_min", type=float, default=0.92)
     ap.add_argument("--pool_ft", nargs="*", default=["Partial", "LoRA"],
-                    help="FT types for the consensus pool. Default Partial LoRA (= RFI 14-model pool)")
-    ap.add_argument("--sp_size", type=int, default=56,
-                    help="evaluation resolution. 56=quick check | 448=full resolution (same space as RFI, heavy)")
+                    help="adaptation strategies in the consensus pool. Default Partial LoRA (the 14-configuration pool of the paper)")
+    ap.add_argument("--sp_size", type=int, default=448,
+                    help="evaluation resolution. 448 = full resolution used in the paper (heavy) | 56 = quick check")
     ap.add_argument("--targets", choices=["pool", "all"], default="all")
     ap.add_argument("--topk_list", nargs="+", type=float, default=[1, 2, 5, 10, 20])
     ap.add_argument("--datasets", nargs="*", default=[],
@@ -207,10 +207,10 @@ def main():
     ap.add_argument("--sanity_images", type=int, default=5)
     ap.add_argument("--min_pool", type=int, default=3)
     ap.add_argument("--dry_run", action="store_true")
-    ap.add_argument("--rule", choices=RULES, default="hybrid", help="consensus aggregation rule (default = original HybridMeanQ75)")
+    ap.add_argument("--rule", choices=RULES, default="arith_trim2", help="consensus aggregation rule (default arith_trim2 = the paper's rule, equation 1)")
     ap.add_argument("--modes", nargs="+", default=["full", "self", "lineage"],
                     choices=["full", "self", "lineage"],
-                    help="comparison modes to compute. For main-text Table 4 only, use --modes full (~3x faster)")
+                    help="comparison modes to compute. For the full-consensus column of Table 3 only, use --modes full (~3x faster)")
     a = ap.parse_args()
     MODES = list(a.modes)
     if "full" not in MODES: MODES = ["full"] + MODES
@@ -306,7 +306,7 @@ def main():
         common &= set(tkeys[m])
     for m in POOL:
         common &= set(ckeys[m])
-    # unique_name -> dataset. Uses the dataset column of used.csv (same as the existing ext scripts).
+    # unique_name -> dataset, from the dataset column of used.csv.
     ds_of = {}
     for m in TARGETS:
         u = pd.read_csv(os.path.join(a.sal_root, m, "used.csv"))
@@ -369,7 +369,7 @@ def main():
     # ── sanity ──
     print("\nconsensus rule: %s" % a.rule)
     if a.rule == "hybrid":
-        print("\n[sanity] HybridMeanQ75: existing formula vs independent implementation")
+        print("\n[sanity] HybridMeanQ75: vectorised formula vs independent reference implementation")
         rr = []
         for i in range(min(a.sanity_images, len(keys))):
             Rk = np.stack([rank_in_fov(mm(CM[m][i], FS), FS) for m in POOL])

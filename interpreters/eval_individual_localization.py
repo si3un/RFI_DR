@@ -3,13 +3,13 @@
 eval_individual_localization.py -- per-case optimal Dice of the individual saliency maps (and alternative consensus rules),
 and score every map with metrics other than Dice.
 
-Rules (same pool = AUROC>=0.92, n=14, multi-scale inputs; no GT used)
-  rank family : RankMean, RankMedian, Q75Rank, HybridMeanQ75 (current), UpperHalfMean, RankMax, RRA
+Rules (same pool = AUROC>=0.92, n=14; no GT used)
+  rank family : RankMean, RankMedian, Q75Rank, HybridMeanQ75, UpperHalfMean, RankMax, RRA
   literature  : ZscoreMean (z-score + mean), UCB (mean-0.5*sd), AggVar (mean/sd)  [arXiv 2207.01565; Rieger&Hansen 2019]
-  v4 additions: RRF tau={0.005,0.02,0.05} (reciprocal rank fusion, Cormack 2009), per-image weights without GT -> ConcWeightedMean/Geo (entropy concentration, EWC-style),
+  weighted    : RRF tau={0.005,0.02,0.05} (reciprocal rank fusion, Cormack 2009), per-image weights without GT -> ConcWeightedMean/Geo (entropy concentration, EWC-style),
                 AgreeWeightedMean (leave-one-out Spearman agreement, Arbitrator-lite), EWC-lite (conc x agree),
                 AUROCWeightedMean (fixed internal-AUROC weights), TrimmedTop7-Max, GeoMean Top7, NoisyOR, VoteGatedMean
-  v3 additions: RankMin (AND), Top{2,4,7}Mean (per-pixel mean of the m highest ranks), UnitSumMean (AGG-Mean),
+  other       : RankMin (AND), Top{2,4,7}Mean (per-pixel mean of the m highest ranks), UnitSumMean (AGG-Mean),
                 GeoMean raw (ViTMix-style multiplicative fusion of unit-sum maps), GeoMean rank,
                 FamilyMean-backbone (7 backbones) / FamilyMean-lineage (4 lineages), vote at 1% added
   vote family : each model map binarised at top-t% (t = --vote_topk), then per-pixel count of models
@@ -22,14 +22,14 @@ Metrics applied to every map
   max_dice (per-case optimal) . nauprc (prevalence-corrected AUPRC) . topk_enrich10 (fixed top-10%)
   pointing (is the single highest pixel inside a lesion) . dice_fixedk (one common fixed top-k%, --fixed_k)
 
-Individual 21 configurations are scored with the same metrics (single_root = multi-scale individual maps).
+Individual 21 configurations are scored with the same metrics (single_root = individual maps).
 Outputs: {out_dir}/{dataset}_rules_per_case.csv, {dataset}_rules_summary.csv,
          {dataset}_binary_rules_per_case.csv, {dataset}_binary_rules.csv
 
-Usage (SNU):
+Usage:
   python interpreters/eval_individual_localization.py --dataset idrid \
     --root $IDRID_SEG_ROOT \
-    --sal_root outputs/idrid_saliency_ms8 --single_root outputs/idrid_saliency_ms8_cls \
+    --sal_root outputs/idrid_saliency_attn --single_root outputs/idrid_saliency_attn \
     --model_roots models/dr_clean models/ckpts_aux models/_stage \
     --out_dir outputs/individual_localization --grid ultrafine
 """
@@ -521,7 +521,7 @@ def main():
                 "GeoMean Top7 (raw)": norm1(np.exp(np.log(np.maximum(srtU[K // 2:], eps_u)).mean(0)) * fov, fov),
                 "NoisyOR (minmax)": norm1(1.0 - np.prod(1.0 - np.clip(MM, 0, 1), axis=0), fov),
                 "VoteGatedMean (mean x vote5%)": norm1(mean * (vote5 + 1e-3), fov),
-                # v5: trimmed geometric mean (drop the t lowest values per pixel), quantile-normalised geometric mean,
+                # trimmed geometric mean (drop the t lowest values per pixel), quantile-normalised geometric mean,
                 #     STAPLE posterior (Warfield 2004) on top-q% binarisations, SNUH-agreement-weighted geometric mean
                 "GeoMean drop1": norm1(np.exp(np.log(np.maximum(srtU[1:], eps_u)).mean(0)) * fov, fov),
                 "GeoMean drop2": norm1(np.exp(np.log(np.maximum(srtU[2:], eps_u)).mean(0)) * fov, fov),
@@ -604,7 +604,7 @@ def main():
                 "RankMean": norm1(mean, fov),
                 "RankMedian": norm1(q_rank(Rk, 0.5), fov),
                 "Q75Rank": norm1(q_rank(Rk, 0.75), fov),
-                "HybridMeanQ75 (current)": hybrid_mean_q75(Rk, fov),
+                "HybridMeanQ75": hybrid_mean_q75(Rk, fov),
                 "UpperHalfMean": norm1(srt[K // 2:].mean(0), fov),
                 "RankMax": norm1(srt[-1], fov),
                 "RRA": norm1(rra_score(Rk, fov), fov),

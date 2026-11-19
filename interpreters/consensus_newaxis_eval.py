@@ -26,7 +26,7 @@ Swapping only the averaging function over the same 14 maps is considered converg
      followed by HybridMeanQ75.
 
 Compared methods
-  RankMean / HybridMeanQ75 (previous best) / the 3 above / [ref] Lineage RelBoost / 1 individual model
+  RankMean / HybridMeanQ75 / the 3 above / [ref] Lineage RelBoost / 1 individual model
 
 Fixed conditions: multi-scale saliency, AUROC>=auc_min pool, image-wise percentile rank,
           no lineage information (except the reference), no per-dataset or per-lesion tuning.

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-table3_compare.py -- compare consensus-agreement results (Table 3) between the original consensus rule and new rules.
+table3_compare.py -- compare CoSA results (Table 3) between consensus rules (Supplementary Table S6, trimming one value
+at each end instead of two).
 
-Reads model_similarity_summary.csv (scope == ALL) from an 'old' pair of run folders (pool-14 run + classifier-only run)
-and from one or more 'new' pairs, prints per-model Spearman agreement (rho_full_mean, rho_self_mean) and top-k overlap
+Reads model_similarity_summary.csv (scope == ALL) from a base pair of run folders (pool-14 run + classifier-only run,
+paper rule arith_trim2) and from one or more comparison pairs, prints per-model Spearman agreement (rho_full_mean, rho_self_mean) and top-k overlap
 AUC side by side, rank changes, the top-agreement model, and -- if per-dataset Dice files are given -- the Spearman
 rank correlation across the 14 pool configurations between agreement and mean per-case optimal Dice.
 
-Dice input: *_rules_summary.csv files from eval_individual_localization.py (SNU); dataset is taken from the file-name prefix
+Dice input: *_rules_summary.csv files from eval_individual_localization.py; dataset is taken from the file-name prefix
 (eophtha_/idrid_/fgadr_), rows with kind == individual, columns method (tag) and dice.
 
 Usage:
   python interpreters/table3_compare.py \
-    --old  outputs/ext_cons_sim_ms14_v1 outputs/ext_cons_sim_ms_cls2617_v1 \
-    --new  geo=outputs/ext_cons_sim_ms14_geo,outputs/ext_cons_sim_ms_cls2617_geo \
-           geo_drop2=outputs/ext_cons_sim_ms14_geo_drop2,outputs/ext_cons_sim_ms_cls2617_geo_drop2 \
-    --dice outputs/snu_dice/eophtha_rules_summary.csv outputs/snu_dice/idrid_rules_summary.csv outputs/snu_dice/fgadr_rules_summary.csv
+    --base outputs/ext_cons_sim_1x14_arith_trim2 outputs/ext_cons_sim_1x_cls2617_arith_trim2 \
+    --compare trim1=outputs/ext_cons_sim_1x14_arith_trim1,outputs/ext_cons_sim_1x_cls2617_arith_trim1 \
+    --dice outputs/individual_localization/eophtha_rules_summary.csv outputs/individual_localization/idrid_rules_summary.csv \
+           outputs/individual_localization/fgadr_rules_summary.csv \
+    --out_csv table3_compare_arith_trim1.csv
 """
 import os, argparse
 import numpy as np, pandas as pd
@@ -32,17 +34,17 @@ def load_pair(dirs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--old", nargs="+", required=True)
-    ap.add_argument("--new", nargs="+", required=True, help="name=dir1,dir2 ...")
+    ap.add_argument("--base", nargs="+", required=True, help="run folders of the paper rule (arith_trim2)")
+    ap.add_argument("--compare", nargs="+", required=True, help="name=dir1,dir2 ...")
     ap.add_argument("--dice", nargs="*", default=[])
     ap.add_argument("--out_csv", default="table3_compare.csv")
     a = ap.parse_args()
-    runs = {"hybrid (paper)": load_pair(a.old)}
-    for spec in a.new:
+    runs = {"arith_trim2 (paper)": load_pair(a.base)}
+    for spec in a.compare:
         name, dirs = spec.split("=", 1)
         runs[name] = load_pair(dirs.split(","))
-    models = list(runs["hybrid (paper)"].index)
-    pool = [m for m in models if int(runs["hybrid (paper)"].loc[m, "in_pool"]) == 1]
+    models = list(runs["arith_trim2 (paper)"].index)
+    pool = [m for m in models if int(runs["arith_trim2 (paper)"].loc[m, "in_pool"]) == 1]
     pd.set_option("display.width", 250)
 
     for col, label in (("rho_full_mean", "Spearman agreement with the full consensus (Table 3 column)"),

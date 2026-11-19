@@ -4,7 +4,6 @@ per_dataset_external_auroc.py - Supplementary Table S2(c): external AUROC per da
 Reads: {run_dir}/external_predictions.csv (columns: image_path,label,grade,dataset,pred)
 Output: {out_dir}/per_dataset_external_auroc.csv  (model, dataset, n, n_pos, auroc, lo, hi)
 CI    : image-level bootstrap (default 1,000 resamples, seed 42) - per-dataset external convention.
-Existing results are not touched (saved only to the new out_dir).
 
 Usage:
   python interpreters/per_dataset_external_auroc.py \

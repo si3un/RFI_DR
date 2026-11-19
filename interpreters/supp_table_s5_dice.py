@@ -9,7 +9,7 @@ Usage:
   python interpreters/supp_table_s5_dice.py \
       --per_case "outputs/individual_localization/*_rules_per_case.csv" \
                  "outputs/consensus_localization/*_rules_per_case.csv" --consensus "UnitSum-Arith-T2x2" \
-      --baseline outputs/baseline_v1/baseline_summary.csv --out outputs/supp_table_s5_dice.csv
+      --baseline outputs/baseline/baseline_summary.csv --out outputs/supp_table_s5_dice.csv
 """
 import glob, argparse
 import numpy as np, pandas as pd
@@ -33,7 +33,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per_case", nargs="+", required=True)
     ap.add_argument("--consensus", default="UnitSum-Arith-T2x2")
-    ap.add_argument("--baseline", default="outputs/baseline_v1/baseline_summary.csv")
+    ap.add_argument("--baseline", default="outputs/baseline/baseline_summary.csv")
     ap.add_argument("--out", default="outputs/supp_table_s5_dice.csv")
     a = ap.parse_args()
     files = [f for pat in a.per_case for f in sorted(glob.glob(pat))]

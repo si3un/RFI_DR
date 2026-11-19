@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 compare_consensus_vs_individual.py -- image-level paired statistics, consensus map vs individual configurations
-(same convention as the manuscript, M6): per-case optimal Dice differences are averaged within each image,
+(as described in the Methods): per-case optimal Dice differences are averaged within each image,
 tested with the two-sided Wilcoxon signed-rank test on image-level differences, bootstrap 95% CI resamples
 images (2,000, seed 42), Holm correction over the comparisons within each dataset.
 
 Inputs: one or more *_rules_per_case.csv files (from eval_individual_localization.py runs); rows are concatenated and
 de-duplicated on (dataset, image_id, lesion_type, method), the last file winning.
 
-Usage (SNU):
+Usage (the paper's consensus against every individual configuration is the default; --vs narrows the comparison):
   python interpreters/compare_consensus_vs_individual.py \
-    --per_case outputs/individual_localization/*_rules_per_case.csv outputs/consensus_localization/*_rules_per_case.csv \
-    --consensus "GeoMean drop2" "GeoMean raw (ViTMix)" "HybridMeanQ75 (current)" \
-    --vs "RETFound-DINOv2-LoRA" "DINOv2-LoRA" "HybridMeanQ75 (current)" \
+    --per_case "outputs/individual_localization/*_rules_per_case.csv" "outputs/consensus_localization/*_rules_per_case.csv" \
+    --consensus "UnitSum-Arith-T2x2" \
+    --vs "RETFound-DINOv2-LoRA" "DINOv2-LoRA" \
     --out_dir outputs/consensus_vs_individual
 """
 import os, glob, argparse
@@ -49,7 +49,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per_case", nargs="+", required=True)
     ap.add_argument("--consensus", nargs="+", required=True)
-    ap.add_argument("--vs", nargs="+", default=["RETFound-DINOv2-LoRA", "DINOv2-LoRA", "HybridMeanQ75 (current)"])
+    ap.add_argument("--vs", nargs="+", default=["RETFound-DINOv2-LoRA", "DINOv2-LoRA"])
     ap.add_argument("--all_individuals", action="store_true", help="also compare against every individual configuration")
     ap.add_argument("--out_dir", default="outputs/consensus_vs_individual")
     a = ap.parse_args()

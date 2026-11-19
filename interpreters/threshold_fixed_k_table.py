@@ -1,8 +1,9 @@
 """
-threshold_table3_ppt.py - localization table with a representative fixed threshold.
+threshold_fixed_k_table.py - localization with a representative fixed threshold (supplementary analysis; also
+provides the dataset order and labels used by figures/make_figure3.py).
 
 Rebuilds the table by reading only the precomputed {ds}_fixed_k_performance.csv. No re-sweep.
-Hence the Mean-k rounding rule, the .5 handling of Median-k, and the Max-k integer rule are **unchanged from the existing implementation**.
+The Mean-k rounding rule, the .5 handling of Median-k and the Max-k integer rule are those of threshold_optimal_k.py.
 
 Contents:
   · Mean / Median / Max of the per-case optimal k for each dataset x method, used as fixed thresholds
@@ -13,14 +14,14 @@ Model order is fixed by backbone x fine-tuning:
   OpenCLIP / DINOv2 / RETFound-DINOv2 / DINOv3-Large / DINOv3-Huge / MAE / RETFound
   each as Classifier only -> Partial fine-tuning -> LoRA tuning,  with Consensus Map last.
 
-Outputs (new names that do not overwrite existing files):
-  table3_fixed_representative_k.csv        main table (ALL)
-  table3_fixed_representative_k.md         Markdown version of the table
+Outputs:
+  fixed_representative_k.csv        main table (ALL)
+  fixed_representative_k.md         Markdown version of the table
   consensus_fixed_k_summary.csv            Consensus-only summary (+ oracle reference)
-  table3_fixed_representative_k_by_lesion.csv   appendix (saved only, not printed)
+  fixed_representative_k_by_lesion.csv   appendix (saved only, not printed)
 
 Usage:
-  python interpreters/threshold_table3_ppt.py --out_dir outputs/threshold_analysis
+  python interpreters/threshold_fixed_k_table.py --out_dir outputs/threshold_analysis
 """
 import os, sys, glob, argparse
 import numpy as np, pandas as pd
@@ -138,11 +139,11 @@ def main():
 
     T = build("ALL")
     T.drop(columns=["lesion_type"]).to_csv(
-        os.path.join(a.out_dir, "table3_fixed_representative_k.csv"), index=False)
+        os.path.join(a.out_dir, "fixed_representative_k.csv"), index=False)
     APP = pd.concat([build(lt) for lt in
                      [t for t in LT_ORDER if t in set(F["lesion_type"])]], ignore_index=True)
     APP.to_csv(os.path.join(a.out_dir,
-                            "table3_fixed_representative_k_by_lesion.csv"), index=False)
+                            "fixed_representative_k_by_lesion.csv"), index=False)
 
     KCOL = ["Model"] + ["%s %s-k" % (DS_LABEL.get(d, d), t)
                         for d in dss for t in ("Mean", "Median", "Max")]
@@ -150,15 +151,15 @@ def main():
                         for d in dss for t in ("Mean", "Median", "Max")]
     W = 200
     print("\n" + "=" * W)
-    print("Table 3a. Representative fixed threshold values (Mean / Median / Max of the per-case optimal k, %)  [ALL]")
+    print("Representative fixed threshold values (Mean / Median / Max of the per-case optimal k, %)  [ALL]")
     print("=" * W)
     print(T[KCOL].to_string(index=False))
     print("\n" + "=" * W)
-    print("Table 3. Performance with the representative fixed threshold - Dice / IoU  [ALL case-item]")
+    print("Performance with the representative fixed threshold - Dice / IoU  [ALL case-item]")
     print("=" * W)
     print(T[PCOL].to_string(index=False))
     print("\n" + "=" * W)
-    print("Table 3c. per-case oracle (reference)  [ALL]")
+    print("Per-case oracle (reference)  [ALL]")
     print("=" * W)
     print(T[["Model"] + ["%s Oracle Dice/IoU" % DS_LABEL.get(d, d) for d in dss]]
           .to_string(index=False))
@@ -190,13 +191,13 @@ def main():
         Cn = pd.DataFrame(crows)
         Cn.to_csv(os.path.join(a.out_dir, "consensus_fixed_k_summary.csv"), index=False)
         print("\n" + "=" * W)
-        print("Table 4. Consensus Map summary  [ALL]")
+        print("Consensus Map summary  [ALL]")
         print("=" * W)
         print(Cn[["Dataset", "N", "Mean k", "Fixed Mean-k Dice", "Fixed Mean-k IoU",
                   "Median k", "Fixed Median-k Dice", "Fixed Median-k IoU",
                   "Max k", "Fixed Max-k Dice", "Fixed Max-k IoU"]].to_string(index=False))
         print("\n" + "=" * W)
-        print("Table 5. Consensus Map - relative to oracle (retention = fixed / oracle x 100)")
+        print("Consensus Map - relative to oracle (retention = fixed / oracle x 100)")
         print("=" * W)
         print(Cn[["Dataset", "Oracle Dice", "Oracle IoU", "Fixed Mean-k Dice", "Ret Mean%",
                   "Fixed Median-k Dice", "Ret Median%", "Fixed Max-k Dice",
@@ -205,23 +206,23 @@ def main():
         Cn = pd.DataFrame()
         print("\n[note] Consensus (HybridMeanQ75) row not found.")
 
-    md = ["# Table 3. Representative fixed top-k threshold evaluation", "",
+    md = ["# Representative fixed top-k threshold evaluation", "",
           "case = (image x lesion type). Representative k = Mean / Median / Max of the "
           "per-case optimal top-k, applied as a single fixed threshold to every case of "
           "that dataset. ALL = pooled case-items."]
-    md.append(md_table(T[KCOL], "Table 3a. Representative threshold values (%)"))
-    md.append(md_table(T[PCOL], "Table 3. Dice / IoU at representative fixed thresholds"))
+    md.append(md_table(T[KCOL], "Representative threshold values (%)"))
+    md.append(md_table(T[PCOL], "Dice / IoU at representative fixed thresholds"))
     md.append(md_table(T[["Model"] + ["%s Oracle Dice/IoU" % DS_LABEL.get(d, d) for d in dss]],
-                       "Table 3c. Per-case oracle (reference)"))
+                       "Per-case oracle (reference)"))
     if len(Cn):
-        md.append(md_table(Cn, "Table 4-5. Consensus Map summary"))
-    with open(os.path.join(a.out_dir, "table3_fixed_representative_k.md"),
+        md.append(md_table(Cn, "Consensus Map summary"))
+    with open(os.path.join(a.out_dir, "fixed_representative_k.md"),
               "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
 
     print("\nSaved:")
-    for n in ("table3_fixed_representative_k.csv", "table3_fixed_representative_k.md",
-              "consensus_fixed_k_summary.csv", "table3_fixed_representative_k_by_lesion.csv"):
+    for n in ("fixed_representative_k.csv", "fixed_representative_k.md",
+              "consensus_fixed_k_summary.csv", "fixed_representative_k_by_lesion.csv"):
         print("  %s" % os.path.join(a.out_dir, n))
     print("  (per-lesion results are saved to the appendix only and omitted from the main output)")
 

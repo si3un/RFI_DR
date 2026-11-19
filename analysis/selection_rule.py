@@ -11,7 +11,7 @@ bootstrap_classification_ci.csv (interpreters/bootstrap_classification_ci.py).
 Usage:
   python analysis/selection_rule.py \
       --cosa $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2/model_similarity_summary.csv \
-      --auroc $OUTPUT_ROOT/bootstrap_ci_v1/bootstrap_classification_ci.csv \
+      --auroc $OUTPUT_ROOT/bootstrap_ci/bootstrap_classification_ci.csv \
       --thresholds 0.92 0.93 0.94 0.95 0.96 --main 0.95
 """
 import argparse

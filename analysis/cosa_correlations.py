@@ -16,7 +16,7 @@ Usage:
   python analysis/cosa_correlations.py \
       --cosa  $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2/model_similarity_summary.csv \
       --dice  $OUTPUT_ROOT/supp_table_s5_dice.csv \
-      --auroc $OUTPUT_ROOT/bootstrap_ci_v1/bootstrap_classification_ci.csv
+      --auroc $OUTPUT_ROOT/bootstrap_ci/bootstrap_classification_ci.csv
 """
 import argparse
 import os

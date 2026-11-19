@@ -1,25 +1,31 @@
 """
 make_figure3.py - Figure 3 and Supplementary Figure S2: representative individual and consensus saliency maps.
 
-Rows = dataset (e-Ophtha / IDRiD / FGADR), columns = [fundus + lesion contours | individual x3 | consensus].
-  * Case selection: in each dataset, the image whose "per-image mean consensus Dice" is closest to the dataset median
-    (avoids cherry-picking; --min_types sets the minimum number of lesion types).
-  * 3 individual maps: if --sim_csv (model_similarity_summary.csv from ext_consensus_similarity_loo.py, scope=ALL) is given, the worst / median / best
-    models by Full rho within the pool are selected automatically; otherwise they are given via --models.
-  * All saliency panels show the percentile rank within the FOV (same normalization as the consensus formula), same colormap,
-    values below the --alpha_cut quantile are transparent. GT is drawn as a 1px contour (MA blue / HE yellow / EX cyan / SE red).
-  * Each panel corner shows the per-case optimal Dice of that image (mean over lesion types).
+Portrait layout (default): columns = dataset (e-Ophtha / IDRiD / FGADR), rows = [fundus + lesion contours | consensus |
+three individual configurations].
+  * Case selection: in each dataset, the image whose per-image mean consensus Dice is closest to the dataset median
+    (--min_types sets the minimum number of lesion types), or the images given with --cases.
+  * Individual maps: given with --models, or chosen from --sim_csv (model_similarity_summary.csv from
+    ext_consensus_similarity_loo.py, scope=ALL) as the least similar / median / most similar pool configurations.
+  * Consensus panel: built from the pool maps with --cons_rule (default arith_trim with --cons_trim 2 = equation 1).
+  * Lesions are drawn as 1-px contours (MA blue / HE yellow / EX cyan / SE red); each panel shows the per-case optimal
+    Dice of that image (mean over lesion types).
+  * --grid21 also writes, per dataset, the grid of all 21 configurations (Supplementary Figure S2).
 
 Inputs:
-  --thr_dir      threshold_optimal_k output (per-case CSV)  -> case selection + Dice labels
-  --sal_attn     {ds}_saliency_attn  parent of these roots (outputs)   individual maps, 1.0x
-  --sal_ms       {ds}_saliency_ms8   parent of these roots (outputs)   consensus inputs
-  --roots        3 dataset roots (order: eophtha idrid fgadr), same as threshold_optimal_k
-Usage:
-  python figures/make_figure3.py --thr_dir outputs/threshold_analysis_002 \
-      --roots $EOPHTHA_ROOT $IDRID_SEG_ROOT <FGADR_ROOT> \
-      --model_roots models/dr_clean models/ckpts_aux --sim_csv outputs/model_similarity_summary.csv \
-      --out_dir outputs/paper_figures
+  --per_case     *_rules_per_case.csv from eval_individual_localization.py and eval_consensus_localization.py
+                 (case selection and Dice labels)
+  --outputs      parent folder of {ds}_saliency_attn (saliency maps of the annotated datasets)
+  --roots        3 dataset roots (order: eophtha idrid fgadr)
+Usage (display settings of the paper):
+  python figures/make_figure3.py \
+      --per_case "outputs/individual_localization/*_rules_per_case.csv" \
+                 "outputs/consensus_localization/*_rules_per_case.csv" \
+      --roots $EOPHTHA_ROOT $IDRID_SEG_ROOT $FGADR_SEG_ROOT --outputs outputs \
+      --model_roots $SAVE_ROOT/dr_clean $SAVE_ROOT/ckpts_aux \
+      --cases C0014759 IDRiD_32 1022_2 --models dinov2_vitl14_lora dinov3_vith16plus_lora retfound_mae_lora \
+      --style slide --blur 0.5 --color_gamma 0.5 --alpha_gamma 0.5 --amax 0.75 --alpha_floor 0.25 --base gray \
+      --grid21 --out_dir outputs/paper_figures
 """
 import os, sys, glob, argparse
 import numpy as np, pandas as pd
@@ -31,7 +37,7 @@ import snu_localization as L
 import eophtha_localization as E
 from threshold_sweep_erx import DISCOVER, DEF_TYPES, load_set
 from consensus_newaxis_eval import hybrid_mean_q75, mm_rank_stack
-from threshold_table3_ppt import DS_ORDER, DS_LABEL, classify
+from threshold_fixed_k_table import DS_ORDER, DS_LABEL, classify
 
 CONS_KEY = "HybridMeanQ75"
 LT_COLOR = {"MA": "#1f77ff", "HE": "#ffd400", "EX": "#00e5ff", "SE": "#ff2a2a"}
@@ -81,14 +87,14 @@ except NameError:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--thr_dir", default="", help="old format: threshold_optimal_k per-case CSVs (HybridMeanQ75)")
-    ap.add_argument("--per_case", nargs="*", default=[], help="new format: eval_individual_localization *_rules_per_case.csv globs (individuals + consensus rule)")
+    ap.add_argument("--thr_dir", default="", help="alternative input: threshold_optimal_k.py per-case CSVs (HybridMeanQ75 consensus); used when --per_case is empty")
+    ap.add_argument("--per_case", nargs="*", default=[], help="*_rules_per_case.csv globs from eval_individual_localization.py / eval_consensus_localization.py (individuals + consensus rule)")
     ap.add_argument("--cons_method", default="UnitSum-Arith-T2x2", help="consensus method name in --per_case CSVs")
-    ap.add_argument("--cons_rule", choices=["hybrid", "geo_trim", "arith_trim"], default="hybrid", help="how the consensus panel is built")
-    ap.add_argument("--cons_trim", type=int, default=4, help="geo_trim: number of lowest values dropped per pixel")
-    ap.add_argument("--cons_sal", default="ms8", help="consensus material: {ds}_saliency_<this> (ms8 = old multi-scale, attn = 1.0x)")
+    ap.add_argument("--cons_rule", choices=["hybrid", "geo_trim", "arith_trim"], default="arith_trim", help="how the consensus panel is built (arith_trim = equation 1 of the paper)")
+    ap.add_argument("--cons_trim", type=int, default=2, help="arith_trim: values dropped at EACH end per pixel (paper: 2); geo_trim: lowest values dropped per pixel")
+    ap.add_argument("--cons_sal", default="attn", help="consensus inputs: {ds}_saliency_<this> under --outputs (attn = 1.0x maps used in the paper)")
     ap.add_argument("--roots", nargs=3, required=True, help="eophtha idrid fgadr roots (in this order)")
-    ap.add_argument("--outputs", default="outputs", help="parent of {ds}_saliency_attn / {ds}_saliency_ms8")
+    ap.add_argument("--outputs", default="outputs", help="parent of the {ds}_saliency_<name> folders")
     ap.add_argument("--model_roots", nargs="+", required=True)
     ap.add_argument("--auc_min", type=float, default=0.92)
     ap.add_argument("--sim_csv", default="", help="model_similarity_summary.csv (auto-selects 3 models by Full rho)")
@@ -99,13 +105,13 @@ def main():
     ap.add_argument("--cmap", default="jet", help="saliency colormap (jet: blue=low, red=high)")
     ap.add_argument("--alpha_max", type=float, default=0.75)
     ap.add_argument("--style", choices=["lab", "topk", "slide"], default="slide",
-                    help="slide: same as qual_page_all.overlay (gray fundus, jet(min-max), alpha=0.65*value, blur 0.5) | lab: uniform alpha 0.45 blend over the original | topk: show rank only for the top show_top")
-    ap.add_argument("--blur", type=float, default=0.5, help="gaussian blur for slide style (qual_page_all default 0.5)")
+                    help="slide: gray fundus, jet(min-max), alpha = amax * value, gaussian blur | lab: uniform alpha 0.45 blend over the original | topk: show rank only for the top show_top")
+    ap.add_argument("--blur", type=float, default=0.5, help="gaussian blur sigma for slide style")
     ap.add_argument("--color_gamma", type=float, default=1.0, help="slide style: colour = cmap(v ** this); <1 pushes blobs toward red")
     ap.add_argument("--alpha_floor", type=float, default=0.0, help="slide style: opacity = amax * clip((v - floor) / (1 - floor)); values below floor are not drawn")
     ap.add_argument("--alpha_cut", type=float, default=0.0, help="slide style: values below this are transparent; opacity rises to amax over the next 0.15")
     ap.add_argument("--alpha_gamma", type=float, default=1.0, help="slide style: alpha = amax * value**alpha_gamma (1 = linear)")
-    ap.add_argument("--amax", type=float, default=0.65, help="maximum alpha for slide style (qual_page_all default 0.65)")
+    ap.add_argument("--amax", type=float, default=0.65, help="maximum alpha for slide style")
     ap.add_argument("--blend_alpha", type=float, default=0.45, help="heatmap weight for lab style (plain alpha blend)")
     ap.add_argument("--base", choices=["gray", "color", "none"], default="gray", help="saliency panel background: gray (grayscale fundus) | color (color fundus) | none (black)")
     ap.add_argument("--contour_topk", choices=["none", "optimal", "fixed"], default="optimal",
@@ -117,7 +123,7 @@ def main():
     ap.add_argument("--crop_fov", type=int, default=1, help="1: crop panels to the fundus (FOV) bounding box (removes letterbox margins)")
     ap.add_argument("--crop_pad", type=int, default=4)
     ap.add_argument("--consensus_row", type=int, default=2, choices=[2, 5], help="position of the consensus row in portrait: 2 (second row) or 5 (last)")
-    ap.add_argument("--grid21", action="store_true", help="Fig S1: separately save a per-dataset grid of [fundus, consensus] + 21 configurations (7 backbone x 3 FT)")
+    ap.add_argument("--grid21", action="store_true", help="Supplementary Figure S2: also save a per-dataset grid of [fundus, consensus] + 21 configurations (7 backbones x 3 strategies)")
     ap.add_argument("--out_dir", default="outputs/paper_figures")
     a = ap.parse_args()
     if not a.models and not a.sim_csv: sys.exit("[abort] either --sim_csv or --models is required")
@@ -350,9 +356,9 @@ def main():
             cb2.ax.set_xticklabels(["Low", "High"], fontsize=8.5); cb2.outline.set_visible(False)
             cb2.set_label("Saliency (top %d%% of FOV shown)" % round(a.show_top * 100) if a.style == "topk" else "Saliency", fontsize=8.5, labelpad=2)
             for ext in ("png", "pdf"):
-                fg.savefig(os.path.join(a.out_dir, "figS1_grid21_%s.%s" % (ds, ext)), dpi=250)
+                fg.savefig(os.path.join(a.out_dir, "figS2_grid21_%s.%s" % (ds, ext)), dpi=250)
             plt.close(fg)
-            print("Saved: figS1_grid21_%s.png (%d/21 configurations found)" % (ds, sum(1 for t in have if t != "Consensus")))
+            print("Saved: figS2_grid21_%s.png (%d/21 configurations found)" % (ds, sum(1 for t in have if t != "Consensus")))
     print("Saved:", os.path.join(a.out_dir, "fig2_maps.png / .pdf"))
 
 

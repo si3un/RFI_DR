@@ -4,8 +4,7 @@ Reads the per-image predictions written by interpreters/snu_eval_dr.py (<pred_ro
 columns: idx, label, pred). Run inside the hospital environment; no SNUH data leave it.
 
 Usage:
-  python analysis/snuh_auprc.py --pred_roots $OUTPUT_ROOT/snu_metrics_lenient \
-      $OUTPUT_ROOT/snu_metrics_lenient_rfdv2 $OUTPUT_ROOT/snu_metrics_lenient_rfdv2_partial \
+  python analysis/snuh_auprc.py --pred_roots $OUTPUT_ROOT/snu_eval_main \
       --out $OUTPUT_ROOT/snuh_auprc.csv
 """
 import argparse

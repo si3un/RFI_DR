@@ -91,7 +91,7 @@ class ClassificationTrainer(BaseTrainer):
         """
         Pass each split's images through the backbone(+head) forward only once and
         capture the input right before the head (= fixed backbone features) with a forward hook
-        for caching. Every backbone implementation (dino/retfound/rad_dino/openclip/chexagent)
+        for caching. Every backbone implementation (dino/retfound/mae/openclip)
         passes through `model.head` (nn.Linear) last, so this single hook works the same way
         without knowing model-specific code.
 

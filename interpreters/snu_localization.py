@@ -256,7 +256,7 @@ def main():
                "PG_n", "PG_pct", "otsu_iou_mean", "otsu_iou_CI", "top10_iou_mean",
                "inout_geomean", "inout_geomean_CI"]].to_string(index=False))
 
-    print("\n===== Rank comparison (new statistic vs previous median) =====")
+    print("\n===== Rank comparison (mean-based statistic vs median) =====")
     for label, cnew, cold in [("nAUPRC: mean vs median", "nAUPRC_mean", "nAUPRC_median"),
                               ("Inside/Outside: geomean vs median", "inout_geomean", "inout_median")]:
         d = df2[["model", "fine_tuning", cnew, cold]].copy()

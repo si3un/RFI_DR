@@ -2,8 +2,8 @@
 consensus_compare.py — comparison of 5 consensus fusion schemes (simple mean → agreement-aware).
 
 5-row table (per lesion_type):
-  1) Primary      = 14 models (Partial+LoRA, AUC≥0.9), lineage-balanced mean (existing)
-  2) Lineage      = 8 models (best Partial + best LoRA per lineage), mean (existing Sensitivity)
+  1) Primary      = 14 models (Partial+LoRA, AUC≥0.9), lineage-balanced mean
+  2) Lineage      = 8 models (best Partial + best LoRA per lineage), mean (sensitivity analysis)
   3) Agreement-Gated (CAG) = M(x)·A(x)   [main proposal]
   4) Geometric    = (R1·R2·R3·R4)^(1/4)  [soft intersection]
   5) Soft-Voting  = M(x)·V(x), V=¼Σ I(Rk>q)  [q=0.9, sensitivity analysis]

@@ -1,8 +1,8 @@
 """
 bootstrap_classification_ci.py - bootstrap 95% CI for Table 2 / Table S2 (image-level, 2,000 resamples, seed 42).
 
-Background: the CIs in test_metrics.json / external_metrics.json from trainers/utils.py use the normal-approximation (Wald) formula,
-      which differs from the paper's Methods (bootstrap percentile). They are recomputed from the prediction CSVs. Existing files are not touched.
+The paper reports image-level bootstrap percentile CIs, recomputed here from the prediction CSVs. The normal-approximation
+(Wald) CIs that trainers/utils.py writes to test_metrics.json / external_metrics.json are not used.
 
 Reads: {run_dir}/test_predictions.csv, external_predictions.csv (columns include label, pred),
         0_best_thr from {run_dir}/test_metrics.json (= validation Youden threshold; same as checkpoint val_thresholds)
@@ -12,7 +12,7 @@ Output: {out_dir}/bootstrap_classification_ci.csv
 Usage:
   python interpreters/bootstrap_classification_ci.py \
       --run_roots $OUTPUT_ROOT/dr_clean $OUTPUT_ROOT/ckpts_aux \
-      --out_dir $OUTPUT_ROOT/bootstrap_ci_v1
+      --out_dir $OUTPUT_ROOT/bootstrap_ci
 """
 import os, glob, json, argparse
 import numpy as np, pandas as pd

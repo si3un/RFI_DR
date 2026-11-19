@@ -3,15 +3,14 @@
 eval_consensus_localization.py -- consensus map (equation 1) and its per-case optimal Dice, with alternative means,
 normalisations and trimming for comparison.
 
-Questions addressed and what this script computes
-  * "why the geometric mean and not the arithmetic (or harmonic) mean?"      -> 3 means
-  * "min-max values carry a different meaning in each map; use ranks if no threshold may be used"
-                                                                              -> 3 per-map normalisations
-  * "dropping some values looks like a hack; use a fixed, generic rule such as Olympic scoring
-     (discard the highest and the lowest)"                                    -> symmetric and one-sided trimming
-  * "were there zeros that break the geometric mean?"                        -> zero diagnostics
+What this script compares
+  * arithmetic, geometric and harmonic means                                 -> 3 means
+  * min-max, unit-sum and rank normalisation of each map                     -> 3 per-map normalisations
+  * symmetric trimming (discard the same number of highest and lowest values) and one-sided trimming
+  * zeros in the maps that would affect the geometric mean                   -> zero diagnostics
 
-Default design: 3 normalisations x 3 means x 3 symmetric trimming levels = 27 rules, plus the current manuscript rule.
+Default design: 3 normalisations x 3 means x 3 symmetric trimming levels = 27 rules, plus a reference rule.
+The paper's rule is UnitSum-Arith-T2x2 (equation 1).
   normalisation (per map, inside the FOV, no labels, no thresholds)              --norms
      MinMax : the stored saliency map, min-max scaled to [0, 1] (E.mm)
      UnitSum: the min-max map divided by its own sum over the FOV pixels (each map sums to 1; spatial, per model)
@@ -29,12 +28,12 @@ Default design: 3 normalisations x 3 means x 3 symmetric trimming levels = 27 ru
      L1 L2 L4 : drop only the lowest 1 / 2 / 4      (one-sided: guards against a member that misses a region)
      U1 U2 U4 : drop only the highest 1 / 2 / 4     (one-sided: guards against a member that spikes alone)
   reference (always added)
-     Current: UnitSum-Geo-Low4 : manuscript rule (unit-sum maps, drop the 4 lowest per pixel, geometric mean)
-                                 = UnitSum-Geo-L4, kept under its own name as the sanity check
+     UnitSum-Geo-Low4 : unit-sum maps, drop the 4 lowest per pixel, geometric mean
+                        (= UnitSum-Geo-L4, kept under its own name as a consistency check)
 
 For Geo and Harm a fixed floor (applied to every value, always, not as a fallback) keeps log(0) and 1/0 finite:
-`--eps` (default 1e-6) for the [0, 1]-scaled MinMax and Rank values, and the manuscript's original 1e-12 for UnitSum
-values (which are ~1e-6 per pixel), so that UnitSum-Geo-T0 and the reference rule reproduce the earlier values exactly.
+`--eps` (default 1e-6) for the [0, 1]-scaled MinMax and Rank values, and 1e-12 for UnitSum
+values (which are ~1e-6 per pixel).
 No lesion mask is used to build any map; masks are used only to score them.
 
 --shard i/n evaluates only the images whose position in the sorted image list is i modulo n (all lesion-type cases of

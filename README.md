@@ -141,7 +141,7 @@ configs/
 data/             CSV-driven dataset
 models/           backbone builders (DINOv2, DINOv3, RETFound, RETFound-DINOv2, MAE, OpenCLIP), LoRA, heads
 trainers/         training loop (DDP/AMP), metrics, run records
-scripts/          run.sh (one config), run_dr.sh (all configs), weight download / CSV helpers
+scripts/          run.sh (one config), run_dr.sh (all configs), OpenCLIP weight download
 interpreters/     saliency maps, consensus map, lesion localization, CoSA, classification statistics
 analysis/         small scripts that recompute numbers from saved result files (no images or models needed)
 figures/          Figures 1-3 and Supplementary Figure S2

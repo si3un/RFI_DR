@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
-#  General-purpose training launcher - any config (osteoporosis production or
-#  the public examples in configs/examples/) runs through this one script.
+#  Training launcher for one config (scripts/run_dr.sh calls it for every
+#  configuration in configs/referable_dr/ or configs/any_dr/).
 #  Nothing in the code here changes with the domain/backbone/ft.method;
 #  everything is determined by the values in the yaml given by CONFIG.
 # ------------------------------------------------------------
@@ -11,15 +11,14 @@
 #
 #  Examples)
 #    # on a single GPU 0
-#    CONFIG=configs/osteoporosis-config.yml bash scripts/run.sh
+#    CONFIG=configs/referable_dr/dinov2_vitl14_lora.yml bash scripts/run.sh
 #    # on 4 GPUs 0-3 (DDP)
-#    CONFIG=configs/examples/cifar10_dinov3_partial.yml \
+#    CONFIG=configs/referable_dr/dinov2_vitl14_lora.yml \
 #      CUDA_VISIBLE_DEVICES=0,1,2,3 bash scripts/run.sh
-#    # override data/save paths with environment variables (works with ${DATA_ROOT} etc. in the config)
-#    DATA_ROOT=/data/osteoxray SAVE_ROOT=/data/runs \
-#      CONFIG=configs/osteoporosis-config.yml bash scripts/run.sh
+#    # paths come from environment variables used in the config (${SAVE_ROOT}, ${DETECTION_CSV}, ...)
+#    SAVE_ROOT=/path/to/runs CONFIG=configs/referable_dr/dinov2_vitl14_lora.yml bash scripts/run.sh
 #    # resume interrupted training
-#    CONFIG=configs/osteoporosis-config.yml RESUME=/path/to/ckpt_last.pth bash scripts/run.sh
+#    CONFIG=configs/referable_dr/dinov2_vitl14_lora.yml RESUME=/path/to/ckpt_last.pth bash scripts/run.sh
 #
 #  * Note: under DDP, batch_size in the config is the size "per GPU".
 #          (total effective batch = batch_size x number of GPUs)
@@ -31,7 +30,7 @@ export PYTHONPATH="${PYTHONPATH:-}:${ROOT_DIR}"
 
 if [ -z "${CONFIG:-}" ]; then
   echo "Specify the config path to run with the CONFIG environment variable. e.g.:" >&2
-  echo "  CONFIG=configs/osteoporosis-config.yml bash scripts/run.sh" >&2
+  echo "  CONFIG=configs/referable_dr/dinov2_vitl14_lora.yml bash scripts/run.sh" >&2
   exit 1
 fi
 

@@ -195,7 +195,7 @@ def _sample_images_by_label(datasets, split='train', max_px=320, n_per_label=3):
     experiment actually trained on", so actual samples are shown directly in the report.
 
     Note: images are fully embedded (base64) inside report.html - the report still opens even if the
-    original data folder is later moved or deleted (e.g. examples/data/ is a regenerated folder).
+    original data folder is later moved or deleted.
     Silently skipped for trainers that use a Dataset other than BaseDataset.
 
     Returns: {label: [b64_1, b64_2, ...]} (up to n_per_label per label; fewer if less data is available)
@@ -455,7 +455,7 @@ def generate_report(
         body.append(
             "<p>Every <code>check_freq</code> epochs, compares against the initial weights to verify that frozen "
             "parameters really did not change and that trainable parameters are actually "
-            "being updated (readme.md section 9).</p>"
+            "being updated.</p>"
         )
         for entry in check_history:
             n_updated = sum(1 for _, status, _ in entry['results'] if status == 'updated')

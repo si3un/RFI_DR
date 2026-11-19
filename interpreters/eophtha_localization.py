@@ -62,8 +62,8 @@ def letterbox_img(path):
 
 
 def fundus_mask_448(orig):
-    """actual fundus region (excluding black margins) of the 448 letterbox original — **same** as eophtha_qual_page.
-    Removes saliency noise from letterbox black bars / cropped borders from the evaluation FOV (#1 per-image FOV fix)."""
+    """actual fundus region (excluding black margins) of the 448 letterbox image.
+    Removes letterbox black bars / cropped borders from the evaluation FOV (per-image FOV)."""
     m = orig.mean(2) > 0.06
     m = binary_closing(m, iterations=3)
     m = binary_fill_holes(m)

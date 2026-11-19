@@ -5,10 +5,10 @@ Finalized settings
   1. Saliency map : 1.0x + 1.5x multi-scale fusion  (--sal_root = *_saliency_ms8)
   2. Consensus pool: classification AUROC >= threshold (default 0.92 -> 14 models, 0.95 -> 10 models)
   3. Consensus methods (per pool threshold):
-       CentRelBoost      : centrality-weighted mean x (1 + majority-of-K agreement)  [existing]
+       CentRelBoost      : centrality-weighted mean x (1 + majority-of-K agreement)
        RankMean          : pixel-wise mean after converting to percentile ranks within the FOV
        TrimmedRankMean   : pixel-wise mean after dropping trim values at the top and bottom (default trim=2)
-     Reference: Lineage RelBoost @best8 (existing method), individual models
+     Reference: Lineage RelBoost @best8, individual models
      ※ The ClusterRankMean family is excluded (at corr>=0.8 the clusters split and it becomes identical to RankMean)
   4. Threshold sweep — both computed simultaneously **from the same sort**:
        primary     : top 1%, 2%, ..., 99%            (1-percentile increments)
@@ -18,7 +18,7 @@ Finalized settings
      Also reports the median/Q1/Q3 of the optimal k and pos_over_G — to check whether sub-1% is
      actually needed for tiny lesions (rate of hitting the grid lower bound, at_min).
 
-Empty GT: if |L| = 0 after intersecting with the FOV, that (image x lesion) is excluded (existing rule kept).
+Empty GT: if |L| = 0 after intersecting with the FOV, that (image x lesion) is excluded.
 N consistency: only cases evaluable by all methods are aggregated.
 
 Usage:
@@ -142,7 +142,7 @@ def run_dataset(a):
         pl = [m for m in order_c if auc.get(m, 0) >= t]
         if len(pl) < 2 or tuple(pl) in seen:
             if len(pl) >= 2:
-                print("  [merged] AUROC>=%.2f gives the same pool as the previous one (n=%d)" % (t, len(pl)))
+                print("  [merged] AUROC>=%.2f gives the same pool as the previous threshold (n=%d)" % (t, len(pl)))
             continue
         seen.add(tuple(pl)); pools.append((t, pl))
     if not pools:

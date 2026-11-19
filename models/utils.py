@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 # --------------------------------------------------------
-# Offline support: for HuggingFace Hub models (rad_dino/chexagent), even when already cached,
+# Offline support: for HuggingFace Hub models, even when already cached,
 # from_pretrained() contacts the network every time to check for the latest revision (default HF behaviour).
 # Without internet access this check itself fails, so the cache cannot be used even if present.
 # So first try with local_files_only=True (local cache only, no network requests), and only if
@@ -26,10 +26,8 @@ def freeze(module):
     for p in module.parameters():
         p.requires_grad = False
 
-'''
-TODO (LHJ): Implement the sanity_check function to verify model parameters' requires_grad settings.
-'''
 def sanity_check(model):
+    """Placeholder for a requires_grad check; currently a no-op."""
     pass
 
 

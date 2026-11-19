@@ -33,7 +33,7 @@ Difference from Adaptive-k:
   Adaptive **forces** |S| = |L|, giving the GT size as the budget,
   whereas here each map picks the size most favourable to itself. GT is used only for that choice.
 
-Empty GT: existing rule kept — if |L| = 0 after intersecting with the FOV, that (image × lesion) is excluded from aggregation.
+Empty GT: if |L| = 0 after intersecting with the FOV, that (image × lesion) is excluded from aggregation.
 
 Targets: 21 individual models (single_root, 1.0x) + Consensus (sal_root=ms8, AUROC>=auc_min).
       Uses the same model set / preprocessing / FOV as gt_localization_all.py.
@@ -91,7 +91,7 @@ def sweep_best(A, Lm, fov, ks, mode="rank"):
     Lf = Lm.ravel()[fi].astype(bool)
     G = int(Lf.sum())
     if G == 0 or n == 0:
-        return None                      # empty GT -> excluded per existing rule
+        return None                      # empty GT -> excluded
     s = A.ravel()[fi]
     order = np.argsort(s, kind="stable")[::-1]     # ties broken by descending flatten index (deterministic)
     csum = np.cumsum(Lf[order].astype(np.int64))
@@ -207,7 +207,7 @@ def run_dataset(a, ks):
         fov = fov_cache[fn]
         Lm = E.letterbox_mask(r["mask_path"]) & fov
         if Lm.sum() == 0:
-            skipped += 1; continue         # empty GT → excluded (existing rule)
+            skipped += 1; continue         # empty GT → excluded
 
         maps = {pretty[m]: E.mm(icams[m][ifidx[m][fn]].numpy()) * fov for m in inames}
         ok = True

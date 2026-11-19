@@ -5,7 +5,7 @@ Multi-scale version of gen_saliency_attn.py (1.0x single scale).
 Data loading (external TP + M0 mapping) is **exactly the same** as gen_saliency_attn.py,
 and only the CAM computation is replaced by SESS multi-scale.
 
-SESS procedure (same as the RFI original):
+SESS procedure:
   ① at each scale s, upscale the input to s*448
   ② 448 sliding window (stride = stride_frac * 448)
   ③ per-window target-class score σ(logit) as the fusion weight
@@ -18,13 +18,13 @@ Number of windows per scale (stride_frac=0.5):
   1.5x → 672,  starts {0,224}       → 2x2 =  4
   2.0x → 896,  starts {0,224,448}   → 3x3 =  9
   i.e. --scales 1.0 1.5 means 5 passes per image; 1.0 1.5 2.0 means 14 passes.
-  (RFI's *_saliency_ms8 was made with 1.0+1.5 = 5 passes)
+  (the paper uses --scales 1.0 = a single pass)
 
 Output format is the same as gen_saliency_attn.py: {out_root}/{model}/saliency_map.pth [N,448,448] + used.csv
-→ existing code such as consensus_overlap / ext_consensus_similarity reads it as is.
+→ consensus_overlap / ext_consensus_similarity_loo read it as is.
 
 Usage (generating only the 14 AUROC>=0.90 models used as consensus inputs is sufficient):
-  CUDA_VISIBLE_DEVICES=0 python interpreters/gen_saliency_attn_multiscale.py \
+  CUDA_VISIBLE_DEVICES=0 python interpreters/gen_saliency_attn_multiscale_keys.py \
       --dr_root  $OUTPUT_ROOT/dr_clean \
       --aux_root $OUTPUT_ROOT/ckpts_aux \
       --m0_dir   $AUTOMORPH_M0_DIR \
@@ -261,8 +261,8 @@ if __name__ == "__main__":
                     help=">0 : only models whose 0_auc in test_metrics.json is >= this value "
                          "(0.90 to generate only the consensus inputs)")
     ap.add_argument("--ft", nargs="*", default=[],
-                    help="fine-tuning type filter (Linear/Partial/LoRA). The RFI ms8 root "
-                         "contains only Partial/LoRA, so use --ft Partial LoRA to match the Table 1 pool")
+                    help="adaptation filter (Linear/Partial/LoRA). The paper uses this script for the "
+                         "classifier-only configurations: --ft Linear --scales 1.0")
     ap.add_argument("--datasets", nargs="*", default=[],
                     help="generate only these datasets (e.g. aptos messidor2 deepdrid). Empty = all")
     ap.add_argument("--exclude_datasets", nargs="*", default=[],

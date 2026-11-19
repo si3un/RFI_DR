@@ -1,5 +1,5 @@
 """
-baseline_avgmask_patchceiling.py - computes the 2 recommendations from the literature review (compass) with the Table 3 protocol (per-case optimal top-k, grid step 0.01%).
+baseline_avgmask_patchceiling.py - reference rows of Supplementary Table S5, scored with the same protocol as the saliency maps (per-case optimal top-k, grid step 0.01%).
 
   (1) Average-mask baseline (Arun et al. 2021): the mean GT mask of the other images of the same dataset and lesion type (leave-one-out) is
       treated as saliency → per-case optimal Dice/IoU. Consensus must exceed this floor to claim localization utility.
@@ -10,12 +10,11 @@ baseline_avgmask_patchceiling.py - computes the 2 recommendations from the liter
 Reads: dataset root (same as threshold_sweep_erx.DISCOVER); no saliency needed.
 Output: {out_dir}/{ds}_baseline_per_case.csv  (dataset,image_id,lesion_type,method,optimal_k,optimal_dice,optimal_iou,gt_frac)
         {out_dir}/baseline_summary.csv        (dataset,lesion_type,method,n,mean_dice,lo,hi,mean_iou)
-Existing threshold_analysis_* folders are not touched.
 
 Usage:
-  python interpreters/baseline_avgmask_patchceiling.py --dataset eophtha --root $EOPHTHA_ROOT --out_dir outputs/baseline_v1
-  python interpreters/baseline_avgmask_patchceiling.py --dataset idrid   --root $IDRID_SEG_ROOT --out_dir outputs/baseline_v1
-  python interpreters/baseline_avgmask_patchceiling.py --dataset fgadr   --root $FGADR_SEG_ROOT --out_dir outputs/baseline_v1
+  python interpreters/baseline_avgmask_patchceiling.py --dataset eophtha --root $EOPHTHA_ROOT --out_dir outputs/baseline
+  python interpreters/baseline_avgmask_patchceiling.py --dataset idrid   --root $IDRID_SEG_ROOT --out_dir outputs/baseline
+  python interpreters/baseline_avgmask_patchceiling.py --dataset fgadr   --root $FGADR_SEG_ROOT --out_dir outputs/baseline
 """
 import os, sys, argparse
 import numpy as np, pandas as pd
@@ -85,7 +84,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", required=True, choices=["eophtha", "idrid", "fgadr"])
     ap.add_argument("--root", required=True)
-    ap.add_argument("--out_dir", default="outputs/baseline_v1")
+    ap.add_argument("--out_dir", default="outputs/baseline")
     ap.add_argument("--patch_sizes", nargs="*", type=int, default=[14, 16])
     ap.add_argument("--limit", type=int, default=0, help="for debugging: first N cases only")
     ap.add_argument("--ms_scales", nargs="*", type=float, default=[1.0, 1.5], help="multi-scale perfect score: generation scales")
