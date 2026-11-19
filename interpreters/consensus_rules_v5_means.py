@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-consensus_rules_v5_means.py -- 2026-09-30 lab-meeting follow-up.
+consensus_rules_v5_means.py -- consensus rules with alternative means, normalisations and trimming.
 
-Questions raised at the meeting and what this script answers
+Questions addressed and what this script computes
   * "why the geometric mean and not the arithmetic (or harmonic) mean?"      -> 3 means
   * "min-max values carry a different meaning in each map; use ranks if no threshold may be used"
                                                                               -> 3 per-map normalisations
@@ -46,7 +46,7 @@ Outputs (out_dir):
   {ds}[_shard]_zero_diag.csv          per image: share of FOV pixels at which >= j pool maps are exactly zero (MinMax)
   {ds}[_shard]_zero_diag_by_model.csv per model: mean share of FOV pixels that are exactly zero
 
-Usage (SNU, run from RFI-DR-clean):
+Usage:
   python interpreters/consensus_rules_v5_means.py --dataset idrid \
     --root $IDRID_SEG_ROOT \
     --sal_root outputs/idrid_saliency_attn \

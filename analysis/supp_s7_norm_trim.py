@@ -5,7 +5,7 @@ arithmetic mean of the remaining values).
 Reads the per-case files written by interpreters/consensus_rules_v5_means.py
 ({dataset}[_shardXofY]_rules_per_case.csv; method names such as 'UnitSum-Arith-T2x2'). FGADR shards are pooled.
 
-Usage (SNU server):
+Usage:
   python analysis/supp_s7_norm_trim.py \
       --per_case "$OUTPUT_ROOT/consensus_rules_v5b_means/*_rules_per_case.csv" \
                  "$OUTPUT_ROOT/consensus_rules_v5c_means/*_rules_per_case.csv" \

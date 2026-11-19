@@ -1,10 +1,5 @@
 """
-[Added] Distributed training (DDP, DistributedDataParallel) utilities.
-
-The previous code combined multiple GPUs with nn.DataParallel (DP), but DP
- - is a single Python process, so the GIL/data loading are serialised in one process, and
- - gathers onto GPU0 every step (scatter/gather), so only GPU0 is busy;
-it was the main reason "only a few GPUs work while the rest sit idle".
+Distributed training (DDP, DistributedDataParallel) utilities.
 
 DDP launches one process per GPU (each with its own dataloader workers)
 and trains far more evenly and quickly. Launch with torchrun:
@@ -59,7 +54,7 @@ def setup_distributed():
         local_rank = get_local_rank()
         torch.cuda.set_device(local_rank)
         # NCCL: communication backend between NVIDIA GPUs
-        # [Changed] Set a generous timeout (1 hour). The final test runs only on rank 0 while the other ranks
+        # Set a generous timeout (1 hour). The final test runs only on rank 0 while the other ranks
         #  wait at a barrier; with a large test set this can exceed the default NCCL timeout (10-30 min depending
         #  on version) and kill the barrier, so extra headroom is given.
         dist.init_process_group(backend='nccl', timeout=timedelta(hours=1))
@@ -78,7 +73,7 @@ def barrier():
 
 
 def broadcast_bool(flag, device):
-    # [Added] Broadcast a bool decision computed only on rank 0 (e.g. whether to early-stop) to all processes.
+    # Broadcast a bool decision computed only on rank 0 (e.g. whether to early-stop) to all processes.
     #  Under DDP all ranks must follow the same flow (forward/backward/scheduler) every epoch, so if
     #  only rank 0 stops training, the other ranks hang waiting for the next communication.
     if not _dist_ready():

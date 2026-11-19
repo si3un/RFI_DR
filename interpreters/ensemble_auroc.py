@@ -17,10 +17,8 @@ Pool definitions (all based on internal test AUROC = 0_auc in test_metrics.json)
   AUROC>=0.95    : 〃
   All            : all models
 
-⚠ The "AUC >= 0.9 consensus (14 models)" in the earlier slides was actually
-   'Partial/LoRA with AUROC>=0.90' (because multi-scale saliency had been generated only for those two).
-   This script does not filter by FT, so it builds the pool exactly as labeled.
-   To get the version restricted to Partial/LoRA, pass --ft Partial LoRA.
+Note: this script does not filter by adaptation strategy, so each pool contains every configuration
+   passing the threshold. To restrict a pool to partial fine-tuning and LoRA, pass --ft Partial LoRA.
 
 Usage:
   # internal / external (CSVs are stored in the model directories)

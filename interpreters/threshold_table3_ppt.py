@@ -1,5 +1,5 @@
 """
-threshold_table3_ppt.py - final Table 3 for the 8/26 meeting (representative fixed threshold).
+threshold_table3_ppt.py - localization table with a representative fixed threshold.
 
 Rebuilds the table by reading only the precomputed {ds}_fixed_k_performance.csv. No re-sweep.
 Hence the Mean-k rounding rule, the .5 handling of Median-k, and the Max-k integer rule are **unchanged from the existing implementation**.
@@ -15,7 +15,7 @@ Model order is fixed by backbone x fine-tuning:
 
 Outputs (new names that do not overwrite existing files):
   table3_fixed_representative_k.csv        main table (ALL)
-  table3_fixed_representative_k.md         for pasting into PPT/documents
+  table3_fixed_representative_k.md         Markdown version of the table
   consensus_fixed_k_summary.csv            Consensus-only summary (+ oracle reference)
   table3_fixed_representative_k_by_lesion.csv   appendix (saved only, not printed)
 

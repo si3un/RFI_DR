@@ -10,7 +10,7 @@ rank correlation across the 14 pool configurations between agreement and mean pe
 Dice input: *_rules_summary.csv files from consensus_rules_v2.py (SNU); dataset is taken from the file-name prefix
 (eophtha_/idrid_/fgadr_), rows with kind == individual, columns method (tag) and dice.
 
-Usage (A100):
+Usage:
   python interpreters/table3_compare.py \
     --old  outputs/ext_cons_sim_ms14_v1 outputs/ext_cons_sim_ms_cls2617_v1 \
     --new  geo=outputs/ext_cons_sim_ms14_geo,outputs/ext_cons_sim_ms_cls2617_geo \

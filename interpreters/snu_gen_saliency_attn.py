@@ -1,5 +1,5 @@
 """
-snu_gen_saliency_attn.py — generates **attention-rollout** saliency for SNU positives (21 A100 models)
+snu_gen_saliency_attn.py — generates **attention-rollout** saliency for the annotated positives (21 trained configurations)
 
 Same structure and storage format as snu_gen_saliency.py (GradCAM); only the saliency computation is
 replaced with the ViT attention rollout from the 2025/2026 notebooks (same engine as gen_saliency_attn.py).
@@ -30,8 +30,8 @@ from tqdm import tqdm
 IMG_SIZE = 448
 EPS = 1e-8
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-OVR_PRETRAINED = ""   # override pretrained_root in the mild config (A100→SNU)
-OVR_DINOV3 = ""       # override dinov3_repo in the mild config (A100→SNU)
+OVR_PRETRAINED = ""   # override pretrained_root in the mild config (another machine)
+OVR_DINOV3 = ""       # override dinov3_repo in the mild config (another machine)
 
 def _letterbox(im):
     """Preserve aspect ratio: pad the short side with black to a square (max side) → no distortion or loss (same space as GT and display)."""
@@ -197,9 +197,9 @@ def run_one(name, mdir, snu_pos, out_root, bs, nw, mode):
     try:
         cfg = dict2namespace(load_yaml(os.path.join(mdir, "config.yml")))
         if OVR_PRETRAINED and hasattr(cfg, "pretrained_root"):
-            cfg.pretrained_root = OVR_PRETRAINED     # mild config A100 → SNU weights
+            cfg.pretrained_root = OVR_PRETRAINED     # weights path on this machine
         if OVR_DINOV3 and hasattr(cfg, "dinov3_repo"):
-            cfg.dinov3_repo = OVR_DINOV3             # mild config A100 → SNU dinov3 hub
+            cfg.dinov3_repo = OVR_DINOV3             # dinov3 hub source on this machine
         model = build_encoder(cfg); unfreeze(model); model = model.to(dev).eval()
         ck = torch.load(os.path.join(mdir, "ckpt_best.pth"), map_location=dev, weights_only=False)
         model.load_state_dict(ck["model"], strict=False)
@@ -262,8 +262,8 @@ if __name__ == "__main__":
     ap.add_argument("--batch_size", type=int, default=4)
     ap.add_argument("--num_workers", type=int, default=8)
     ap.add_argument("--exclude", nargs="*", default=["retfound_dinov2_partial_ft_2"])
-    ap.add_argument("--pretrained_root", default="", help="override the A100→SNU weights path in the mild config")
-    ap.add_argument("--dinov3_repo", default="", help="override the A100→SNU dinov3 hub path in the mild config")
+    ap.add_argument("--pretrained_root", default="", help="override the weights path in the config (another machine)")
+    ap.add_argument("--dinov3_repo", default="", help="override the dinov3 hub path in the config (another machine)")
     a = ap.parse_args()
     OVR_PRETRAINED = os.path.abspath(a.pretrained_root) if a.pretrained_root else ""
     OVR_DINOV3 = os.path.abspath(a.dinov3_repo) if a.dinov3_repo else ""

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-consensus_rules_v2.py -- 2026-09-23 lab-meeting request: compare consensus construction rules broadly,
+consensus_rules_v2.py -- compares consensus construction rules broadly,
 and score every map with metrics other than Dice.
 
 Rules (same pool = AUROC>=0.92, n=14, multi-scale inputs; no GT used)

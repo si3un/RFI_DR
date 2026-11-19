@@ -1,7 +1,7 @@
 """Supplementary Table S2(a): AUPRC in the SNUH cohort (with the random-baseline AUPRC = prevalence).
 
 Reads the per-image predictions written by interpreters/snu_eval_dr.py (<pred_root>/<configuration>/snu_preds.csv,
-columns: idx, label, pred). Run on the SNU server; no data leave it.
+columns: idx, label, pred). Run inside the hospital environment; no SNUH data leave it.
 
 Usage:
   python analysis/snuh_auprc.py --pred_roots $OUTPUT_ROOT/snu_metrics_lenient \

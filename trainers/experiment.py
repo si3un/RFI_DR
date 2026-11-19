@@ -1,5 +1,5 @@
 """
-[Added] Provenance-recording tools for experiment reproducibility.
+Provenance-recording tools for experiment reproducibility.
 
 Records the following so that each training run (save_root/desc/ folder) is a "complete experiment record".
  - Code state: git commit hash + uncommitted diff (exactly which code was used)
@@ -58,9 +58,8 @@ def start_terminal_log(log_path, resume=False):
     same process (e.g. a hyperparameter sweep in a notebook), not restoring keeps nesting the
     Tee and the next experiment's output leaks into the log file of an experiment that already finished.
 
-    [Changed] Append to the existing log only when resume=True (actually resuming via --resume).
-    Otherwise (a new run) the log is written fresh even if the same desc folder is reused, so it
-    does not mix with a previous run's log (same kind of bug as metrics.csv rows piling up).
+    Append to the existing log only when resume=True (actually resuming via --resume).
+    Otherwise (a new run) the log is written fresh even if the same desc folder is reused.
     """
     log_file = open(log_path, 'a' if resume else 'w')
     orig_stdout, orig_stderr = sys.stdout, sys.stderr
@@ -110,7 +109,7 @@ def capture_git_info(save_path, repo_root=None):
 
 def capture_code_snapshot(save_path, repo_root=None):
     """
-    [Added] Reproducing code from git commit/diff alone requires checking out that commit and
+    Reproducing code from git commit/diff alone requires checking out that commit and
     applying the patch, which is cumbersome. Instead, the source code (.py) actually used by this
     experiment is copied as-is under save_path/code_snapshot/ - a complete copy that can be opened
     directly, without git and without switching commits.
@@ -134,7 +133,7 @@ def capture_code_snapshot(save_path, repo_root=None):
 
 def capture_pip_freeze(save_path):
     """
-    [Added] Record the library versions actually installed at training time
+    Record the library versions actually installed at training time
     (`pip freeze`). Questions like "which torch/transformers version did this experiment use?"
     cannot be answered from the code diff alone, so this is saved separately for every experiment.
     """
@@ -151,7 +150,7 @@ def capture_pip_freeze(save_path):
 
 def save_predictions_csv(save_path, test_dataset, y_scores, save_name='test_predictions.csv'):
     """
-    [Added] Save the final test inference results (from the model rebuilt from the best checkpoint) as CSV:
+    Save the final test inference results (from the model rebuilt from the best checkpoint) as CSV:
     test_dataset.df (the dataframe BaseDataset read from the CSV) as-is, with per-class raw output
     columns (output_0, output_1, ...) appended.
 
@@ -191,11 +190,9 @@ def _dataset_summary(datasets):
 
 def _sample_images_by_label(datasets, split='train', max_px=320, n_per_label=3):
     """
-    [Changed] Pick n_per_label (default 3) representative images per label (target_label) and return them
+    Pick n_per_label (default 3) representative images per label (target_label) and return them
     as base64 data URIs. Text alone (class-count numbers) does not convey "which images/labels this
     experiment actually trained on", so actual samples are shown directly in the report.
-    (Previously there was only 1 image per label, which was not enough to judge what images of that
-    label generally look like, so it was increased to 3.)
 
     Note: images are fully embedded (base64) inside report.html - the report still opens even if the
     original data folder is later moved or deleted (e.g. examples/data/ is a regenerated folder).
@@ -237,7 +234,7 @@ _CLASS_METRIC_RE = re.compile(
 
 def _pivot_test_metrics(test_metrics):
     """
-    [Added] Split the flat dict produced by compute_basic_metrics()
+    Split the flat dict produced by compute_basic_metrics()
     ({'0_auc':.., '0_auc_lower':.., ..., '1_sensitivity':.., 'acc':.., 'loss':..}) into two parts
     so the report can show "classes as rows, metrics as columns".
 
@@ -269,7 +266,7 @@ def _pivot_test_metrics(test_metrics):
 
     class_rows = {}
     for idx, d in by_class.items():
-        # [Added] Raw confusion-matrix (one-vs-rest) cell counts + number of actual positives (N) for this class.
+        # Raw confusion-matrix (one-vs-rest) cell counts + number of actual positives (N) for this class.
         #  Sensitivity/specificity are already ratios computed from these, but the table also shows
         #  the raw counts so "how many exactly" can be checked.
         tn, fp, fn, tp = d.get('tn'), d.get('fp'), d.get('fn'), d.get('tp')
@@ -290,7 +287,7 @@ def _pivot_test_metrics(test_metrics):
 
 def _plot_roc_curves(save_path, roc_curves, save_name='roc_curve.png'):
     """
-    [Added] Plot per-class (one-vs-rest) ROC curves for the final test metrics (from ckpt_best) and
+    Plot per-class (one-vs-rest) ROC curves for the final test metrics (from ckpt_best) and
     save them to save_path/roc_curve.png. As with training_curves.png, the image is fully embedded in
     report.html as base64, so report.html still opens even if this PNG file is later moved or
     deleted.
@@ -380,7 +377,7 @@ def generate_report(
     body.append("<h2>Data</h2>")
     try:
         ds_summary = _dataset_summary(datasets)
-        # [Changed] Instead of a string list like "0=8, 1=10, 2=9", show an actual split x label table
+        # Instead of a string list like "0=8, 1=10, 2=9", show an actual split x label table
         #  (to compare counts and label distribution at a glance).
         all_labels = sorted(
             {k for s in ds_summary.values() for k in (s.get('counts') or {})}, key=str
@@ -436,7 +433,7 @@ def generate_report(
         "</table>",
     ]
 
-    # [Added] model_checker results: (1) the full requires_grad state at the start of training (whether the
+    # model_checker results: (1) the full requires_grad state at the start of training (whether the
     #  freeze settings were applied as intended), (2) per-check_freq results of "which parameters actually changed".
     #  There may be many parameters, so they are collapsed in <details>; expand to see the full table.
     if initial_requires_grad:
@@ -511,7 +508,7 @@ def generate_report(
             progress_rows.append(("Mean time per epoch", f"{avg_sec:.1f} s"))
         progress_rows.append(("Total training time (start to end)", str(train_end - train_start)))
 
-        # [Changed] Shown as time "per epoch" rather than per batch. env_info's avg_data/fwd/bwd_seconds
+        # Shown as time "per epoch" rather than per batch. env_info's avg_data/fwd/bwd_seconds
         #  are already (the per-epoch dataloader/forward/backward totals) averaged over epochs
         #  (changed to AverageMeter.sum in classification_trainer.py._train_step), so here they are
         #  only shown in seconds as-is.
@@ -543,7 +540,7 @@ def generate_report(
 
     curves_path = save_path / 'training_curves.png'
     if curves_path.exists():
-        # [Changed] Embed fully as base64 instead of a relative path (src="training_curves.png").
+        # Embed fully as base64 instead of a relative path (src="training_curves.png").
         #  With a relative path, the image breaks when only report.html is copied/downloaded on its own.
         curves_b64 = base64.b64encode(curves_path.read_bytes()).decode('ascii')
         body += [
@@ -554,7 +551,7 @@ def generate_report(
     if test_metrics:
         body.append("<h2>Final test metrics (best checkpoint)</h2>")
 
-        # [Added] State, as an absolute path, exactly which checkpoint file these metrics came from.
+        # State, as an absolute path, exactly which checkpoint file these metrics came from.
         #  (test_metrics.json is always pure inference from a model rebuilt from ckpt_best.pth alone.)
         if test_model_ckpt_path:
             body.append(
@@ -563,7 +560,7 @@ def generate_report(
 
         class_rows, overall = _pivot_test_metrics(test_metrics)
 
-        # [Changed] Metrics without a class index (summaries over all classes: loss/weighted_auc/acc/n_samples etc.)
+        # Metrics without a class index (summaries over all classes: loss/weighted_auc/acc/n_samples etc.)
         #  are shown first in a separate small table. Per-class AUC/threshold/sensitivity/specificity/
         #  confusion matrix are laid out below in a table with "classes as rows, metrics as columns".
         if overall:
@@ -577,7 +574,7 @@ def generate_report(
             )
 
         if class_rows:
-            # [Added] N (actual positives)/TN/FP/FN/TP: shown next to AUC/threshold/sensitivity/specificity
+            # N (actual positives)/TN/FP/FN/TP: shown next to AUC/threshold/sensitivity/specificity
             #  so the confusion matrix (one-vs-rest) can also be seen as raw counts.
             cols = ['AUC', 'Best Threshold', 'Sensitivity', 'Specificity',
                     'N (actual positives)', 'TN', 'FP', 'FN', 'TP']
@@ -587,7 +584,7 @@ def generate_report(
                 body.append(f"<tr><td><b>{idx}</b></td>{cells}</tr>")
             body.append("</table>")
 
-        # [Added] Per-class (one-vs-rest) ROC curves. Like training_curves.png, fully embedded as base64
+        # Per-class (one-vs-rest) ROC curves. Like training_curves.png, fully embedded as base64
         #  so they display correctly even if only report.html is copied.
         if test_roc_curves:
             roc_path = _plot_roc_curves(save_path, test_roc_curves)

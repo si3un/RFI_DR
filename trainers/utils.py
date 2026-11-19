@@ -33,7 +33,7 @@ def get_lr(optimizer):
 
 
 # ------------------------------------------------------------
-# [Added] Environment-variable interpolation
+# Environment-variable interpolation
 #  If a config value contains ${VAR} or $VAR, it is replaced with the environment variable
 #  at run time. This lets server-specific mount paths be passed via environment variables
 #  without editing the config. e.g. data_root: "${DATA_ROOT}"
@@ -52,7 +52,7 @@ def _expand_env(value):
 def load_yaml(filename):
     with open(filename, 'r') as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
-    # [Added] Substitute environment variables right after loading.
+    # Substitute environment variables right after loading.
     return _expand_env(data)
 
 def save_yaml(filename, data):
@@ -71,7 +71,7 @@ def dict2namespace(config):
 
 
 # ------------------------------------------------------------
-# [Added] Helper to safely read "optional" keys that may be missing from the config.
+# Helper to safely read "optional" keys that may be missing from the config.
 #  Wrapped with getattr + a default for compatibility with older configs.
 # ------------------------------------------------------------
 def cfg_get(namespace, name, default=None):
@@ -79,7 +79,7 @@ def cfg_get(namespace, name, default=None):
 
 
 # ------------------------------------------------------------
-# [Added] Fix seeds for reproducibility.
+# Fix seeds for reproducibility.
 #  Running with the same seed makes data shuffling/augmentation/initialisation identical,
 #  so experiment results (AUC etc.) can be reproduced.
 #  * torch is imported only inside this function (for pure-logic testing).
@@ -99,7 +99,7 @@ def set_seed(seed, deterministic=False):
         torch.backends.cudnn.benchmark = True
 
 def seed_worker(worker_id):
-    # [Added] Also fix the seed of each DataLoader worker process.
+    # Also fix the seed of each DataLoader worker process.
     #  (so numpy/random-based augmentation is reproducible per worker)
     import torch
     worker_seed = torch.initial_seed() % 2**32
@@ -108,7 +108,7 @@ def seed_worker(worker_id):
 
 
 def _peek_first_image_path(meta_path, input_label):
-    # [Added] Peek at one image-path column value from the first CSV row (reads only header + first row).
+    # Peek at one image-path column value from the first CSV row (reads only header + first row).
     #  Used in path validation (fail-fast) to check that an image actually opens.
     if not input_label:
         return None
@@ -127,15 +127,14 @@ def _peek_first_image_path(meta_path, input_label):
 
 
 # ------------------------------------------------------------
-# [Added] Pre-flight path validation (fail-fast).
+# Pre-flight path validation (fail-fast).
 #  Check that the required paths actually exist before training starts, so that
 #  a wrong mount/path exits immediately with a clear error before grabbing GPUs.
-#  (Previously a FileNotFoundError only appeared late, while reading the first batch.)
 # ------------------------------------------------------------
 def validate_paths(cfg):
     problems = []
 
-    # [Changed] data_root is "optional" (kept backward compatible).
+    # data_root is "optional" (kept backward compatible).
     #  - If set, check that the folder exists and join it with the CSV's relative paths to find images (recommended).
     #  - If not set (None), use the CSV paths as absolute paths as-is.
     #  Either way, "whether the first CSV image actually opens" is checked below, so
@@ -148,7 +147,7 @@ def validate_paths(cfg):
     if not os.path.isfile(meta_path):
         problems.append(f"data.meta_path (CSV) file does not exist: {meta_path}")
     else:
-        # [Added] Check that the first CSV image path opens, regardless of whether data_root is set
+        # Check that the first CSV image path opens, regardless of whether data_root is set
         input_label = cfg_get(cfg.data, 'input_label', None)
         if not input_label:
             problems.append("data.input_label is not set. (the CSV's image-path column name)")
@@ -184,7 +183,7 @@ def validate_paths(cfg):
 
 
 def validate_select_metric(cfg):
-    # [Added] select_metric validation (fail-fast).
+    # select_metric validation (fail-fast).
     #  If select_metric has the form "<class index>_<metric>" (e.g. "2_auc"), check that the class index
     #  is within the range of actual metric keys. With num_classes=1 (binary, BCE) only 0_* metric keys
     #  are produced, so a value like "2_auc" raises a KeyError at model selection. This blocks it up front.
@@ -231,7 +230,7 @@ def compute_basic_metrics(y_scores, y_true, thresholds=None):
     """
     Compute per-class one-vs-rest AUC / sensitivity / specificity.
 
-    [Changed] Added the thresholds argument (prevents data leakage)
+    Added the thresholds argument (prevents data leakage)
       - thresholds=None  : find each class's optimal threshold directly on "the data passed in"
                            using Youden's J. (used for valid evaluation)
       - thresholds=dict  : use predetermined thresholds of the form {class index: threshold}
@@ -259,7 +258,7 @@ def compute_basic_metrics(y_scores, y_true, thresholds=None):
         roc_curves[i] = (fpr, tpr, _auc)
 
         if thresholds is not None and i in thresholds:
-            # [Changed] Use the predetermined threshold (the value found on valid)
+            # Use the predetermined threshold (the value found on valid)
             best_thr = thresholds[i]
         else:
             # If no threshold is given, search for the optimum on this data with Youden's J
@@ -283,7 +282,7 @@ def compute_basic_metrics(y_scores, y_true, thresholds=None):
         res[f'{i}_specificity'] = _specificity
         res[f'{i}_specificity_lower'] = _specificity_lower
         res[f'{i}_specificity_upper'] = _specificity_upper
-        # [Added] Raw confusion-matrix cell counts (one-vs-rest). Sensitivity/specificity are
+        # Raw confusion-matrix cell counts (one-vs-rest). Sensitivity/specificity are
         #  already computed from these, but they are also kept as-is for when the report should
         #  show "how many were actually correct" as raw numbers.
         res[f'{i}_tn'] = int(tn)
@@ -292,7 +291,7 @@ def compute_basic_metrics(y_scores, y_true, thresholds=None):
         res[f'{i}_tp'] = int(tp)
 
     # ------------------------------------------------------------
-    # [Added] Two summary metrics for true multi-class (one-hot y_true) with more than 2 classes.
+    # Two summary metrics for true multi-class (one-hot y_true) with more than 2 classes.
     #  - weighted_auc: per-class one-vs-rest AUC averaged with weights equal to the number of actual
     #    positives (data) in each class. Used as the default select_metric when you want to summarise
     #    "overall performance" in a single number rather than looking at one class.

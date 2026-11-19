@@ -17,7 +17,7 @@ from trainers.dist_utils import is_main_process
 
 
 class _CachedFeatureDataset(Dataset):
-    """[Added] For ft.method='fast_linear': a lightweight Dataset that simply holds (backbone feature, target)
+    """For ft.method='fast_linear': a lightweight Dataset that simply holds (backbone feature, target)
     tensors. It shares only the interface of BaseDataset (which opens image files); in practice it just
     indexes tensors that are already in memory."""
     def __init__(self, features, targets):
@@ -36,11 +36,8 @@ class ClassificationTrainer(BaseTrainer):
         super().__init__(args)
 
     def _init_loss(self):
-        # [Changed] Support binary classification (num_classes == 1).
-        #  Previously the loss was always CrossEntropyLoss, and with num_classes=1
-        #  CrossEntropy + one_hot(num_classes=1) broke.
-        #  Now num_classes==1 uses a single logit + BCEWithLogitsLoss.
-        #  (Regular multi-class still uses CrossEntropyLoss)
+        # Binary classification (num_classes == 1) uses a single logit + BCEWithLogitsLoss;
+        #  multi-class uses CrossEntropyLoss.
         self.num_classes = self.cfg.num_classes
         if self.num_classes == 1:
             self.criterion = nn.BCEWithLogitsLoss()
@@ -68,14 +65,13 @@ class ClassificationTrainer(BaseTrainer):
         if cfg_get(self.cfg.data, 'external_meta_path', None):
             self.external_dataset = BaseDataset(cfg=self.cfg.data, split='external', use_aux=False)
 
-        # [Added] report.html uses ds.df/ds.target_label/ds._resolve_path (BaseDataset attributes)
+        # report.html uses ds.df/ds.target_label/ds._resolve_path (BaseDataset attributes)
         #  to build the data summary (counts/label distribution) and sample images.
         #  fast_linear (below) replaces self.datasets with cached feature Datasets, which lack
-        #  those attributes, so the report's data table/sample images were dropped entirely
-        #  (bug). Keep the "real" image Datasets from before the replacement separately.
+        #  those attributes, so the "real" image Datasets from before the replacement are kept separately.
         self.report_datasets = self.datasets
 
-        # [Added] ft.method='fast_linear': the backbone is fully frozen (it gets no gradient
+        # ft.method='fast_linear': the backbone is fully frozen (it gets no gradient
         #  anyway), so there is no need to re-run it every epoch. Pass the data through the backbone
         #  only once here, cache the features (right before the head), and replace self.datasets with that cache.
         #  Afterwards _train_step/_eval_step check self.fast_linear and pass only through the head, without the backbone.
@@ -93,7 +89,7 @@ class ClassificationTrainer(BaseTrainer):
 
     def _extract_and_cache_features(self, image_datasets):
         """
-        [Added] Pass each split's images through the backbone(+head) forward only once and
+        Pass each split's images through the backbone(+head) forward only once and
         capture the input right before the head (= fixed backbone features) with a forward hook
         for caching. Every backbone implementation (dino/retfound/rad_dino/openclip/chexagent)
         passes through `model.head` (nn.Linear) last, so this single hook works the same way
@@ -142,7 +138,7 @@ class ClassificationTrainer(BaseTrainer):
         return cached
 
     def _prepare_target(self, target):
-        # [Added] Shape targets to match the loss function.
+        # Shape targets to match the loss function.
         #  - BCE(num_classes==1): float, shape [N, 1]
         #  - CrossEntropy       : long,  shape [N]
         if self.num_classes == 1:
@@ -150,7 +146,7 @@ class ClassificationTrainer(BaseTrainer):
         return target
 
     def _sync_device(self):
-        # [Added] Synchronisation to split timing intervals accurately. CUDA ops are asynchronous, so
+        # Synchronisation to split timing intervals accurately. CUDA ops are asynchronous, so
         #  timing with time.perf_counter() without a sync makes "forward" only launch kernels while
         #  the actual computation finishes in the next interval (backward), creating the illusion
         #  that time is concentrated in backward.
@@ -161,7 +157,7 @@ class ClassificationTrainer(BaseTrainer):
         self.model.train()
 
         losses = AverageMeter()
-        # [Added] Break "time spent" into dataloader (IO+augmentation) / forward / backward.
+        # Break "time spent" into dataloader (IO+augmentation) / forward / backward.
         #  Dataloader time is measured as "time the batch was actually received - time the previous
         #  backward finished", which includes the time the DataLoader spends reading images and
         #  applying augmentation (with worker processes this overlaps, so the actual wait
@@ -171,7 +167,7 @@ class ClassificationTrainer(BaseTrainer):
         bwd_time = AverageMeter()
         loader = self.loaders['train']
 
-        # [Added] Show the progress bar only on rank 0 (avoids duplicate progress bars under DDP)
+        # Show the progress bar only on rank 0 (avoids duplicate progress bars under DDP)
         iterator = tqdm(loader, desc='train one epoch', total=len(loader),
                         disable=not is_main_process())
 
@@ -189,16 +185,13 @@ class ClassificationTrainer(BaseTrainer):
             target = self._prepare_target(target).to(self.device, non_blocking=True)
 
             # ────────────────────────────────────────────────
-            # [Changed - key fix] Apply AMP autocast.
-            #  Previously only a GradScaler was created and forward was not wrapped in autocast,
-            #  so computation actually ran in fp32 with no AMP speed-up at all.
-            #  Now forward/loss are wrapped in autocast and computed in bf16/fp16.
+            # AMP autocast: forward/loss are computed in bf16/fp16.
             # ────────────────────────────────────────────────
             t0 = time.perf_counter()
             with torch.autocast(device_type=self.device.type,
                                 dtype=self.amp_dtype,
                                 enabled=self.enable_amp):
-                # [Added] With fast_linear, batch_x is a cached backbone feature rather than an image, so
+                # With fast_linear, batch_x is a cached backbone feature rather than an image, so
                 #  pass it only through the head without the backbone (= skip the per-epoch backbone forward).
                 if self.fast_linear:
                     pred = self.unwrap_model().head(batch_x)
@@ -228,7 +221,7 @@ class ClassificationTrainer(BaseTrainer):
         metrics = {
             'loss': losses.avg,
             'learning_rate': get_lr(self.optimizer),
-            # [Changed] Time "summed over this epoch" rather than per-batch mean (for per-epoch timing analysis).
+            # Time "summed over this epoch" rather than per-batch mean (for per-epoch timing analysis).
             #  AverageMeter.sum is exactly the total time of all batches processed in this epoch.
             'data_time': data_time.sum,
             'fwd_time': fwd_time.sum,
@@ -238,8 +231,8 @@ class ClassificationTrainer(BaseTrainer):
 
     @torch.no_grad()
     def _eval_step(self, split='valid', thresholds=None):
-        # [Changed] Evaluate with the underlying model unwrapped from DDP (rank-0-only evaluation, no sync needed)
-        # [Changed] Generalised to take a split string instead of a bool test flag
+        # Evaluate with the underlying model unwrapped from DDP (rank-0-only evaluation, no sync needed)
+        # Generalised to take a split string instead of a bool test flag
         #  (supports 'train'/'valid'/'test' - to draw train/valid/test curves).
         #  Note: even with split='train', self.loaders['train'] is the Dataset with training augmentation
         #  (RandomResizedCrop/RandAugment) applied (only the model is in eval() mode), so these train metrics
@@ -273,7 +266,7 @@ class ClassificationTrainer(BaseTrainer):
         targets = torch.cat(running_target, dim=0)
         y_scores, y_true = self._scores_and_true(preds, targets)
 
-        # [Changed] If thresholds from valid are given, use them as-is (prevents test leakage);
+        # If thresholds from valid are given, use them as-is (prevents test leakage);
         #  otherwise (= valid evaluation) compute thresholds on this data and return them as well.
         metrics, used_thresholds, _ = compute_basic_metrics(y_scores, y_true, thresholds=thresholds)
         metrics['loss'] = losses.avg
@@ -281,7 +274,7 @@ class ClassificationTrainer(BaseTrainer):
         return update_prefix(metrics, split), used_thresholds
 
     def _scores_and_true(self, preds, targets):
-        """[Added] Convert the model's raw output (preds) and ground truth (targets) into the
+        """Convert the model's raw output (preds) and ground truth (targets) into the
         (y_scores, y_true) form expected by compute_basic_metrics. Shared by _eval_step/_final_inference."""
         if self.num_classes == 1:
             y_scores = torch.sigmoid(preds).numpy()
@@ -294,7 +287,7 @@ class ClassificationTrainer(BaseTrainer):
     @torch.no_grad()
     def _final_inference(self):
         """
-        [Added] Instead of reusing self.model from the training loop (which may be a DDP wrapper, and
+        Instead of reusing self.model from the training loop (which may be a DDP wrapper, and
         with fast_linear is adapted to cached features rather than images) or self.loaders, rebuild
         the model from scratch "using only what is stored in" ckpt_best.pth and run a clean
         inference on the test set once more:

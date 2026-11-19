@@ -95,7 +95,7 @@ def build_lineage_agreement(models,common,out_dir,n_img=200,seed=42):
     except: p=np.nan
     res=dict(intra_mean=float(np.nanmean(intra)),inter_mean=float(np.nanmean(inter)),intra_n=len(intra),inter_n=len(inter),mannwhitney_p=p)
     json.dump(res,open(os.path.join(out_dir,"lineage_agreement.json"),"w"),indent=2)
-    print(f"[meeting#1] intra-lineage={res['intra_mean']:.3f} > inter-lineage={res['inter_mean']:.3f} (p={p:.2e})")
+    print(f"[lineage agreement] intra-lineage={res['intra_mean']:.3f} > inter-lineage={res['inter_mean']:.3f} (p={p:.2e})")
 def build_consensus(models,common,mode="lineage"):
     LINS=sorted(set(v["lineage"] for v in models.values())); Nc=len(common)
     if mode=="best":
@@ -103,7 +103,7 @@ def build_consensus(models,common,mode="lineage"):
         for g in LINS:
             cand={m:v for m,v in models.items() if v["lineage"]==g}
             chosen[g]=[max(cand,key=lambda m:cand[m]["auc"])]
-        print("[meeting#2] best-per-family: "+", ".join(f"{g}={chosen[g][0]}" for g in LINS))
+        print("[best per family] "+", ".join(f"{g}={chosen[g][0]}" for g in LINS))
     else:
         chosen={g:[m for m,v in models.items() if v["lineage"]==g] for g in LINS}
     lin_mean={g:torch.zeros(Nc,IMG_SIZE,IMG_SIZE) for g in LINS}

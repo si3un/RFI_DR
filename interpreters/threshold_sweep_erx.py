@@ -112,7 +112,7 @@ def relboost(fn, best8, lin, ft, cams, fidx, fov):
 
 
 def model_relboost(fn, pool, cams, fidx, fov):
-    """Lineage-free Model-RelBoost (meeting spec): simple-mean base × majority-of-K agreement."""
+    """Lineage-free Model-RelBoost: simple-mean base × majority-of-K agreement."""
     v = pool_variants(fn, pool, cams, fidx, fov)
     return v.get("RelBoost") if v else None
 

@@ -157,10 +157,10 @@ def main():
     ap.add_argument("--num_workers", type=int, default=8)
     ap.add_argument("--exclude", nargs="*", default=[])
     ap.add_argument("--pretrained_root", default="",
-                    help="override pretrained_root in the config (A100 absolute path → SNU weights path). "
+                    help="override pretrained_root in the config (e.g. when the weights are stored at a different path on another machine). "
                          "e.g. $PRETRAINED_ROOT")
     ap.add_argument("--dinov3_repo", default="",
-                    help="override dinov3_repo (hub source) in the config (A100→SNU). "
+                    help="override dinov3_repo (hub source) in the config (another machine). "
                          "e.g. $DINOV3_REPO")
     a = ap.parse_args()
 
@@ -198,9 +198,9 @@ def main():
         try:
             cfg = dict2namespace(load_yaml(os.path.join(mdir, "config.yml")))
             if a.pretrained_root and hasattr(cfg, "pretrained_root"):
-                cfg.pretrained_root = a.pretrained_root   # A100 → SNU weights path
+                cfg.pretrained_root = a.pretrained_root   # weights path on this machine
             if a.dinov3_repo and hasattr(cfg, "dinov3_repo"):
-                cfg.dinov3_repo = a.dinov3_repo           # A100 → SNU dinov3 hub source
+                cfg.dinov3_repo = a.dinov3_repo           # dinov3 hub source on this machine
             model = build_encoder(cfg); unfreeze(model); model = model.to(dev).eval()
             ck = torch.load(os.path.join(mdir, "ckpt_best.pth"), map_location=dev, weights_only=False)
             model.load_state_dict(ck["model"], strict=False)

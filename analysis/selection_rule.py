@@ -8,7 +8,7 @@ ranks, pick the best mean rank, and break ties by internal AUROC.
 Inputs: model_similarity_summary.csv of the pool run (interpreters/ext_consensus_similarity_loo.py) and
 bootstrap_classification_ci.csv (interpreters/bootstrap_classification_ci.py).
 
-Usage (A100 server):
+Usage:
   python analysis/selection_rule.py \
       --cosa $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2/model_similarity_summary.csv \
       --auroc $OUTPUT_ROOT/bootstrap_ci_v1/bootstrap_classification_ci.csv \

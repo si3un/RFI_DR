@@ -108,7 +108,7 @@ def build_consensus(fname, mods, lin, cam_cache, fn2idx_cache):
     return np.mean(lin_maps, axis=0)   # equal weight per lineage
 
 
-# ── FT-balanced consensus (one-on-one meeting: exclude Linear + equal weight for Partial/LoRA) ──
+# ── FT-balanced consensus (exclude classifier-only; equal weight for Partial/LoRA) ──
 def ft_of(name):
     n = name.lower()
     if "lora" in n:

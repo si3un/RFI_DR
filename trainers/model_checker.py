@@ -12,14 +12,14 @@ class ModelChecker():
             # Under DDP, state_dict keys get a 'module.' prefix, so strip it
             # up front so they can be compared later in check_with_init.
             k = k[len('module.'):] if k.startswith('module.') else k
-            # [Changed] Using only .cpu() without .clone(): if the tensor is already on CPU (= no GPU at all),
+            # Using only .cpu() without .clone(): if the tensor is already on CPU (= no GPU at all),
             #  .cpu() returns the same tensor without copying, so the "initial snapshot" actually points
             #  to the live parameter. Then, as training changes the parameter, the snapshot changes
             #  with it and everything is wrongly reported as "always freezed".
             self.init_model[k] = v.detach().clone().cpu()
 
     def requires_grad_table(self):
-        # [Added] Return the same info as print_requires_grad as a list of (name, requires_grad) tuples,
+        # Return the same info as print_requires_grad as a list of (name, requires_grad) tuples,
         #  so the initial freeze state can be copied into a table in report.html as-is.
         return [(k, v.requires_grad) for k, v in self.model.named_parameters()]
 
@@ -50,9 +50,8 @@ class ModelChecker():
         if init_keys != current_keys:
             raise ValueError(f"Key mismatch: {init_keys.symmetric_difference(current_keys)}")
 
-        # [Changed] Also return the results as a list of (name, 'freezed'/'updated', diff).
-        #  This lets report.html show "which parameters actually changed after 5 epochs" as-is
-        #  (previously it was only printed to stdout and discarded).
+        # Also return the results as a list of (name, 'freezed'/'updated', diff).
+        #  This lets report.html show which parameters actually changed.
         results = []
         for k, v0 in self.init_model.items():
             v1 = current_state[k].detach().cpu()

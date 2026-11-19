@@ -8,7 +8,7 @@ table3_pairwise.py -- numbers for the Table 3 paragraph that model_similarity_su
   [2] lineage-leave-one-out: mean and 95% CI per pool configuration, the drop from the full consensus, the rank
       correlation of the lineage ranking with the full ranking, and the top three by lineage agreement
 
-Usage (A100):
+Usage:
   python interpreters/table3_pairwise.py --runs outputs/ext_cons_sim_1x14_geo_drop4 \
       --pairs "DINOv2-LoRA:RETFound-DINOv2-LoRA" "DINOv2-LoRA:MAE-Partial"
 """

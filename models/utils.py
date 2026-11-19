@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 # --------------------------------------------------------
-# [Added] Offline support: for HuggingFace Hub models (rad_dino/chexagent), even when already cached,
+# Offline support: for HuggingFace Hub models (rad_dino/chexagent), even when already cached,
 # from_pretrained() contacts the network every time to check for the latest revision (default HF behaviour).
 # Without internet access this check itself fails, so the cache cannot be used even if present.
 # So first try with local_files_only=True (local cache only, no network requests), and only if
@@ -75,7 +75,7 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     out: (M, D)
     """
     assert embed_dim % 2 == 0
-    # [Changed] np.float was removed in NumPy 1.24 and raises AttributeError. Replaced with np.float32.
+    # np.float was removed in NumPy 1.24 and raises AttributeError. Replaced with np.float32.
     omega = np.arange(embed_dim // 2, dtype=np.float32)
     omega /= embed_dim / 2.
     omega = 1. / 10000**omega  # (D/2,)

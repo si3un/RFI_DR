@@ -60,7 +60,7 @@ def build_openclip_model(cfg):
 
     model = ClassifierWithAux(
         model, feat_dim=feat_dim, num_classes=cfg.num_classes,
-        pool=cfg_get(cfg, 'pool', 'token'),   # CLIP also defaults to CLS (same as opportunistic)
+        pool=cfg_get(cfg, 'pool', 'token'),   # CLS token as the global representation
         num_prefix_tokens=num_prefix,
         use_aux=cfg_get(cfg, 'use_aux', False), n_grades=cfg_get(cfg, 'n_grades', 5))
 

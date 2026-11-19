@@ -1,5 +1,5 @@
 """
-[Added] Save each epoch's metrics to CSV regardless of whether wandb is used, and redraw the
+Save each epoch's metrics to CSV regardless of whether wandb is used, and redraw the
 plots on the fly (every epoch) and save them as PNG.
 
 wandb needs internet access/an account to view, but this logger only writes local files (under
@@ -30,18 +30,15 @@ class MetricsLogger:
         self.save_path = Path(save_path)
         self.csv_path = self.save_path / 'metrics.csv'
         self.plot_path = self.save_path / 'training_curves.png'
-        # [Added] Knowing select_metric (e.g. '0_auc') lets the "metric" panel of the plot
+        # Knowing select_metric (e.g. '0_auc') lets the "metric" panel of the plot
         #  point exactly at valid/{select_metric_key}.
         self.select_metric_key = select_metric_key
 
         self._fieldnames = []
         self._rows = []
 
-        # [Changed] Append to the existing CSV only when resume=True (actually resuming via --resume).
-        #  Unconditionally reading and appending to an existing CSV without resuming means that,
-        #  when training again from scratch with a previous run's results left in the same desc folder
-        #  (e.g. re-running the same config), new rows from epoch 1 are appended after the old ones and epochs pile up/duplicate.
-        #  Without resume it is a new run, so always start empty (the file is overwritten on the first log() call).
+        # Append to the existing CSV only when resuming (--resume); a new run always starts empty
+        #  (the file is overwritten on the first log() call).
         if resume and self.csv_path.exists():
             with open(self.csv_path, newline='') as f:
                 reader = csv.DictReader(f)
@@ -53,7 +50,7 @@ class MetricsLogger:
         row = {'epoch': float(epoch), **{k: float(v) for k, v in metrics.items()}}
         self._rows.append(row)
 
-        # [Added] valid exists only every eval_freq, so the set of columns may differ per epoch;
+        # valid exists only every eval_freq, so the set of columns may differ per epoch;
         #  the header is built from all keys seen so far and missing values are left blank.
         fieldnames = ['epoch'] + sorted(k for k in row if k != 'epoch')
         for k in self._fieldnames:
@@ -101,7 +98,7 @@ class MetricsLogger:
                 best_epoch, best_valid = xs[best_i], ys[best_i]
                 ax.scatter([best_epoch], [best_valid], color='red', zorder=3, label=f'best={best_valid:.4f}')
 
-                # [Changed] Draw a reference line parallel to the y-axis (= vertical) at x=best_epoch
+                # Draw a reference line parallel to the y-axis (= vertical) at x=best_epoch
                 #  so "which epoch" valid was best is visible immediately, and annotate the test
                 #  value at that epoch - so valid/test can be compared directly at "the epoch the model
                 #  was selected" (to check the generalisation gap).
@@ -117,7 +114,7 @@ class MetricsLogger:
                     textcoords='offset points', fontsize=8, color='tab:blue',
                 )
 
-            # [Added] train/test are logged at the same interval as valid, so if present they are
+            # train/test are logged at the same interval as valid, so if present they are
             #  overlaid on the same panel to compare at a glance how closely (or differently) the three move.
             for split, color in [('train', 'tab:green'), ('test', 'tab:blue')]:
                 split_key = f'{split}/{self.select_metric_key}'

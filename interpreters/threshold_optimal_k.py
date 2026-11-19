@@ -1,5 +1,5 @@
 """
-threshold_optimal_k.py - optimal top-k threshold analysis (requested at the 8/26 AI meeting).
+threshold_optimal_k.py - optimal top-k threshold analysis.
 
 Purpose (this does not propose a new thresholding method):
   1. With threshold arbitrariness removed by a per-case oracle threshold,

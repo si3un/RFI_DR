@@ -2,8 +2,7 @@
 gen_saliency_attn_multiscale.py — DR external TP **multi-scale(SESS) attention-rollout** saliency generation.
 
 Multi-scale version of gen_saliency_attn.py (1.0x single scale).
-An A100 port of RFI-DR-clean/interpreters/snu_gen_saliency_attn_multiscale.py;
-data loading (external TP + M0 mapping) is **exactly the same** as gen_saliency_attn.py,
+Data loading (external TP + M0 mapping) is **exactly the same** as gen_saliency_attn.py,
 and only the CAM computation is replaced by SESS multi-scale.
 
 SESS procedure (same as the RFI original):

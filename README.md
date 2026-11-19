@@ -1,9 +1,9 @@
 # CoSA: Consensus-based Saliency Agreement
 
-## Overview
-
-Official code for the paper **"CoSA: Consensus-based saliency agreement for annotation-free foundation model explainability
+Code for the paper **"CoSA: Consensus-based saliency agreement for annotation-free foundation model explainability
 assessment validated in diabetic retinopathy"** (manuscript under review).
+
+## Overview
 
 CoSA ranks image classifiers by how well their saliency maps agree with a **consensus map** built from the saliency
 maps of several accurate foundation models, so that explanation quality can be compared **without lesion
@@ -11,33 +11,49 @@ annotations**. In the paper, seven vision foundation models were adapted with th
 training, partial fine-tuning, LoRA) for referable diabetic retinopathy (DR); the consensus map was validated
 against expert pixel-level lesion annotations, and CoSA was computed on unannotated external images.
 
-The training framework (`configs/`, `data/`, `models/`, `trainers/`, `scripts/run.sh`) follows the lab's
-Opportunistic-FM code base.
+Contents: [System requirements](#system-requirements) · [Installation](#installation) · [Demo](#demo) ·
+[Reproducing the paper](#reproducing-the-paper) · [Repository layout](#repository-layout) · [Data](#data) ·
+[Citation](#citation)
 
----
+## System requirements
 
-## Repository layout
-
-```
-configs/
-  referable_dr/   21 run configurations (7 backbones x 3 adaptation strategies) exactly as used
-  any_dr/         the same 21 configurations for the any-DR sensitivity analysis (Supplementary Table S4)
-data/             CSV-driven dataset
-models/           backbone builders (DINOv2, DINOv3, RETFound, RETFound-DINOv2, MAE, OpenCLIP), LoRA, heads
-trainers/         training loop (DDP/AMP), metrics, run records
-scripts/          run.sh (one config), run_dr.sh (all configs), weight download / CSV helpers
-interpreters/     saliency maps, consensus map, lesion localization, CoSA, classification statistics
-analysis/         small scripts that recompute numbers from saved result files (no images or models needed)
-figures/          Figure 1 (schematic) and Figure 2
-```
+- **Operating system:** Linux. Experiments were run in the NVIDIA PyTorch container 26.02 (Python 3.12,
+  torch 2.11, torchvision 0.25).
+- **Hardware:** model training and saliency generation used NVIDIA A100 GPUs (4 GPUs with DistributedDataParallel
+  for training). The demo and the `analysis/` scripts run on a standard CPU.
+- **Software dependencies:** listed with tested versions in `requirements.txt`.
 
 ## Installation
 
 ```bash
+git clone https://github.com/si3un/RFI_DR.git
+cd RFI_DR
 pip install -r requirements.txt
 ```
 
-Tested with Python 3.12 (NVIDIA PyTorch container 26.02). Training used 4 GPUs with DDP.
+Install the `torch`/`torchvision` build that matches your CUDA version (https://pytorch.org). Installing the
+dependencies with pip typically takes a few minutes.
+
+## Demo
+
+`demo/cosa_demo.py` runs the core of the method on synthetic saliency maps, so no images, models or annotations are
+needed. It uses the same consensus and CoSA functions as the paper's analysis
+(`interpreters/ext_consensus_similarity_loo.py`):
+
+```bash
+python demo/cosa_demo.py
+```
+
+It builds the consensus map of 14 synthetic configuration maps (equation 1 of the paper), computes CoSA for every
+map, scores lesion localization with the per-case optimal Dice, and writes `demo/cosa_demo.png`. Expected output
+(runs in a few seconds on a CPU):
+
+```
+Rank correlation with Dice: CoSA rho 0.60, CoSA top-k 0.96
+Consensus Dice 0.830 vs best individual 0.826
+```
+
+## Reproducing the paper
 
 ### Paths (environment variables)
 
@@ -53,20 +69,31 @@ No path is hard-coded; configs and scripts read these variables.
 | `OUTPUT_ROOT` | where analysis outputs are written |
 | `EOPHTHA_ROOT`, `IDRID_SEG_ROOT`, `FGADR_SEG_ROOT` | annotated datasets used for lesion localization |
 | `AUTOMORPH_M0_DIR`, `AUTOMORPH_MAP_CSV` | AutoMorph-preprocessed (M0) external images used for saliency on unannotated images |
-| `SNUH_*` | SNUH health-checkup cohort (only on the hospital server; see Data) |
+| `SNUH_*` | SNUH health-checkup cohort (only inside the hospital environment; see [Data](#data)) |
 
-## Data preparation
+### Training
 
-- Public datasets (see the paper's Data availability and references): EyePACS, MFIDDR, DDR, DRTiD (development);
-  APTOS2019, Messidor-2, IDRiD, FGADR, DeepDRiD (external validation); IDRiD, FGADR and e-Ophtha pixel-level lesion
-  masks (localization). Partitions are described in Supplementary Table S1.
-- The SNUH health-checkup cohort cannot be shared (IRB); the SNUH steps below were run on the hospital server.
-- No images, labels, predictions or weights are included in this repository.
+`scripts/run_dr.sh` trains all 21 configurations (`configs/referable_dr/`, 7 backbones x 3 adaptation strategies)
+with `scripts/run.sh`. The training code is built for efficient runs on one or several GPUs:
 
-## Model training, evaluation and explainability analysis
+- **DistributedDataParallel** (one process per GPU, launched with `torchrun`); a single process is used
+  automatically when only one GPU is visible.
+- **Automatic mixed precision**, with bf16 or fp16 chosen from the hardware (`amp_dtype: auto`).
+- **Cached backbone features for classifier-only training** (`ft.method: fast_linear`): the frozen backbone is run
+  once and only the head is trained afterwards.
+- **Early stopping** on the validation AUROC, and a complete record of every run (config, code snapshot, installed
+  package versions, metrics, test predictions and an HTML report) in `$SAVE_ROOT/<run name>_<timestamp>/`.
 
-The table lists every step in order and the manuscript item it produces. Each script has its full command line
-in its header.
+```bash
+export SAVE_ROOT=... PRETRAINED_ROOT=... DINOV3_REPO=... DETECTION_CSV=... EXTERNAL_CSV=...
+bash scripts/run_dr.sh                               # all 21 configurations
+bash scripts/run_dr.sh configs/referable_dr/dinov2_vitl14_lora.yml   # a single configuration
+```
+
+### Evaluation and explainability analysis
+
+The table lists every step in order and the manuscript item it produces. Each script has its full command line in
+its header.
 
 | Step | Script | Manuscript item |
 |---|---|---|
@@ -74,7 +101,7 @@ in its header.
 | 1b. Any-DR sensitivity | `scripts/run_dr.sh configs/any_dr/*.yml` | Supp. Table S4 |
 | 2. Internal/external AUROC, sensitivity, specificity (bootstrap CIs) | `interpreters/bootstrap_classification_ci.py` | Table 2, Supp. Tables S2(b), S4 |
 | 2b. Per-dataset external AUROC | `interpreters/per_dataset_external_auroc.py` | Supp. Table S2(c) |
-| 2c. SNUH AUROC (hospital server) | `interpreters/snu_eval_dr.py` | Table 2, Supp. Tables S2(a), S4 |
+| 2c. SNUH AUROC (hospital environment) | `interpreters/snu_eval_dr.py` | Table 2, Supp. Tables S2(a), S4 |
 | 2d. SNUH AUPRC | `analysis/snuh_auprc.py` | Supp. Table S2(a) |
 | 2e. Prediction-level ensembles | `interpreters/ensemble_auroc.py` | Supp. Table S3 |
 | 3. Saliency maps, annotated datasets (gradient-weighted attention rollout, 448 x 448) | `interpreters/snu_gen_saliency_attn.py --attn_mode grad_rollout` | Figure 2, Supp. Table S5 |
@@ -101,6 +128,33 @@ python interpreters/ext_consensus_similarity_loo.py --rule arith_trim2 --targets
     --model_roots $SAVE_ROOT/dr_clean $SAVE_ROOT/ckpts_aux \
     --out_dir $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2
 ```
+
+Expected run time: CoSA at full resolution (`--sp_size 448`) takes hours (minutes at `--sp_size 56`); the
+`analysis/` scripts run in seconds.
+
+## Repository layout
+
+```
+configs/
+  referable_dr/   21 run configurations (7 backbones x 3 adaptation strategies) exactly as used
+  any_dr/         the same 21 configurations for the any-DR sensitivity analysis (Supplementary Table S4)
+data/             CSV-driven dataset
+models/           backbone builders (DINOv2, DINOv3, RETFound, RETFound-DINOv2, MAE, OpenCLIP), LoRA, heads
+trainers/         training loop (DDP/AMP), metrics, run records
+scripts/          run.sh (one config), run_dr.sh (all configs), weight download / CSV helpers
+interpreters/     saliency maps, consensus map, lesion localization, CoSA, classification statistics
+analysis/         small scripts that recompute numbers from saved result files (no images or models needed)
+figures/          Figure 1 (schematic) and Figure 2
+demo/             CoSA demo on synthetic saliency maps
+```
+
+## Data
+
+- Public datasets (see the paper's Data availability and references): EyePACS, MFIDDR, DDR, DRTiD (development);
+  APTOS2019, Messidor-2, IDRiD, FGADR, DeepDRiD (external validation); IDRiD, FGADR and e-Ophtha pixel-level lesion
+  masks (localization). Partitions are described in Supplementary Table S1.
+- The SNUH health-checkup cohort cannot be shared (IRB); the SNUH steps were run inside the hospital environment.
+- No images, labels, predictions or weights are included in this repository.
 
 ## Citation
 

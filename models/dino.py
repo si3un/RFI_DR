@@ -87,7 +87,7 @@ def build_dino_model(cfg):
                     merge_weights=False
                 )
         # Re-unfreeze the final norm "after" marking only lora parameters as trainable
-        # (fixes a bug in the reference code: safe because the head is created later in the wrapper)
+        # (safe because the head is created later in the wrapper)
         lora.mark_only_lora_as_trainable(model)
         unfreeze(model.norm)
 
@@ -102,7 +102,7 @@ def build_dino_model(cfg):
         model,
         feat_dim=feat_dim,
         num_classes=cfg.num_classes,
-        pool=cfg_get(cfg, 'pool', 'token'),   # DINO's CLS token is a good global representation -> default CLS (same as opportunistic)
+        pool=cfg_get(cfg, 'pool', 'token'),   # CLS token as the global representation
         num_prefix_tokens=1,
         use_aux=cfg_get(cfg, 'use_aux', False),
         n_grades=cfg_get(cfg, 'n_grades', 5),

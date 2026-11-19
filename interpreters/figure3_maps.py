@@ -4,7 +4,7 @@ figure3_maps.py - Figure 3 and Supplementary Figure S2: representative individua
 Rows = dataset (e-Ophtha / IDRiD / FGADR), columns = [fundus + lesion contours | individual x3 | consensus].
   * Case selection: in each dataset, the image whose "per-image mean consensus Dice" is closest to the dataset median
     (avoids cherry-picking; --min_types sets the minimum number of lesion types).
-  * 3 individual maps: if --sim_csv (A100 model_similarity_summary.csv, scope=ALL) is given, the worst / median / best
+  * 3 individual maps: if --sim_csv (model_similarity_summary.csv from ext_consensus_similarity_loo.py, scope=ALL) is given, the worst / median / best
     models by Full rho within the pool are selected automatically; otherwise they are given via --models.
   * All saliency panels show the percentile rank within the FOV (same normalization as the consensus formula), same colormap,
     values below the --alpha_cut quantile are transparent. GT is drawn as a 1px contour (MA blue / HE yellow / EX cyan / SE red).
@@ -91,7 +91,7 @@ def main():
     ap.add_argument("--outputs", default="outputs", help="parent of {ds}_saliency_attn / {ds}_saliency_ms8")
     ap.add_argument("--model_roots", nargs="+", required=True)
     ap.add_argument("--auc_min", type=float, default=0.92)
-    ap.add_argument("--sim_csv", default="", help="A100 model_similarity_summary.csv (auto-selects 3 models by Full rho)")
+    ap.add_argument("--sim_csv", default="", help="model_similarity_summary.csv (auto-selects 3 models by Full rho)")
     ap.add_argument("--models", nargs="*", default=[], help="explicitly specify 3 individual models (substring match)")
     ap.add_argument("--min_types", type=int, default=2)
     ap.add_argument("--cases", nargs="*", default=[], help="explicit image_id per dataset in order (eophtha idrid fgadr), with or without extension. If empty, use the median rule")
@@ -106,7 +106,7 @@ def main():
     ap.add_argument("--alpha_cut", type=float, default=0.0, help="slide style: values below this are transparent; opacity rises to amax over the next 0.15")
     ap.add_argument("--alpha_gamma", type=float, default=1.0, help="slide style: alpha = amax * value**alpha_gamma (1 = linear)")
     ap.add_argument("--amax", type=float, default=0.65, help="maximum alpha for slide style (qual_page_all default 0.65)")
-    ap.add_argument("--blend_alpha", type=float, default=0.45, help="heatmap weight for lab style (same as _overlay_cam in the PD code)")
+    ap.add_argument("--blend_alpha", type=float, default=0.45, help="heatmap weight for lab style (plain alpha blend)")
     ap.add_argument("--base", choices=["gray", "color", "none"], default="gray", help="saliency panel background: gray (grayscale fundus) | color (color fundus) | none (black)")
     ap.add_argument("--contour_topk", choices=["none", "optimal", "fixed"], default="optimal",
                     help="white contour of the top-k region on each panel: optimal = that map's per-case optimal k (mean over lesion types), fixed = --fixed_k %%")

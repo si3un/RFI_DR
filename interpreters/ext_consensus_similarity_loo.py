@@ -1,43 +1,28 @@
 """
-ext_consensus_similarity_loo.py - individual model <-> Consensus similarity on external (no-GT) data.
+ext_consensus_similarity_loo.py - CoSA: agreement of each configuration's saliency map with the consensus map
+on external images without lesion annotations (Table 3, Supplementary Table S6).
 
-Purpose:
-  Having verified on GT data (E-Ophtha/IDRiD/FGADR) that "consensus similarity correlates with
-  GT localization performance", apply the validated metric to **large external data without GT**.
-  No GT is used here at all (none exists).
-
-Metrics/formulas are kept **identical** to consensus_similarity_loo.py on the RFI side:
-  consensus = HybridMeanQ75  (rank normalization -> 0.5*rank(mean) + 0.5*rank(q75) -> sum=1)
-  pool      = classification AUROC >= --auc_min (default 0.92), FT given by --pool_ft
-  primary   = image-wise Spearman (within the FOV)
-  secondary = top-k spatial IoU (k = --topk_list) + normalized AUC of the curve
+No lesion annotation is used here.
+  consensus = --rule (paper: arith_trim2 = L1-normalised maps, symmetric trimmed mean discarding the 2 highest
+              and the 2 lowest values at each pixel; equation 1)
+  pool      = configurations with internal AUROC >= --auc_min (paper: 0.92), adaptation strategies given by --pool_ft
+  primary   = image-wise Spearman rank correlation within the FOV
+  secondary = top-k spatial IoU (k = --topk_list, paper: 1, 2, 5, 10, 20%) and the normalised AUC of that curve
 
 Three comparison modes:
-  0) Full        direct comparison with the final consensus (n=pool), no exclusion
-  A) Self-LOO    only the target itself is excluded from the pool (targets outside the pool equal Full)
-  B) Lineage-LOO the target's entire lineage is excluded from the pool
-  self_influence = rho_full - rho_self  (self-contribution; exactly 0 for targets outside the pool)
+  0) Full        agreement with the consensus of the whole pool
+  A) Self-LOO    the target itself is excluded from the pool (targets outside the pool equal Full)
+  B) Lineage-LOO the target's whole pretraining lineage is excluded from the pool
+  self_influence = rho_full - rho_self
 
-The lineage definition is consensus_overlap.lineage_of (same scheme as RFI snu_common.lineage_of).
-
-Input notes:
-  --sal_root      individual-model target maps (project baseline = 1.0x saliency_attn)
-  --cons_sal_root consensus inputs (RFI convention = multi-scale). Defaults to --sal_root if unset.
-  If external data has no multi-scale maps, leave --cons_sal_root empty to build from 1.0x,
-  but then do not compare absolute values with the RFI tables; look only at ranks/trends. This is stated in the log.
+Lineages are defined in consensus_overlap.lineage_of.
 
 Resolution --sp_size:
-  56  quick check (3171 images x 21 models ~0.8GB, a few minutes)
-  448 full resolution. Same space as the RFI evaluation. Large resident memory; takes hours.
+  56   quick check (minutes)
+  448  full resolution used in the paper (large memory; hours)
 
-Usage:
-  python interpreters/ext_consensus_similarity_loo.py \
-    --sal_root      $OUTPUT_ROOT/saliency_attn \
-    --cons_sal_root $OUTPUT_ROOT/saliency_attn_ms \
-    --model_roots   $OUTPUT_ROOT/dr_clean \
-                    $OUTPUT_ROOT/ckpts_aux \
-    --out_dir       $OUTPUT_ROOT/ext_cons_sim_loo \
-    --auc_min 0.92 --sp_size 56 --dry_run
+Usage (paper setting):
+  python interpreters/ext_consensus_similarity_loo.py --rule arith_trim2 --targets pool     --datasets aptos deepdrid messidor2 --auc_min 0.92 --sp_size 448     --sal_root $OUTPUT_ROOT/saliency_attn --cons_sal_root $OUTPUT_ROOT/saliency_attn     --model_roots $SAVE_ROOT/dr_clean $SAVE_ROOT/ckpts_aux     --out_dir $OUTPUT_ROOT/ext_cons_sim_1x14_arith_trim2
 """
 import os, sys, glob, argparse
 import numpy as np, pandas as pd
@@ -108,7 +93,7 @@ def consensus_rule(rule, Mk, fov):
     geo         = geometric mean of unit-sum maps (ViTMix-style multiplicative fusion)
     geo_dropT   = geometric mean after dropping the T lowest values at each pixel (trimmed)
     arith_trimT = arithmetic mean of unit-sum maps after dropping the T highest and the T lowest values at each pixel
-                  (symmetric trimmed mean; same rule as UnitSum-Arith-T{T}x{T} in RFI-DR-clean consensus_rules_v5_means.py)"""
+                  (symmetric trimmed mean; same rule as UnitSum-Arith-T{T}x{T} in consensus_rules_v5_means.py)"""
     if rule == "hybrid":
         return hybrid_mean_q75(np.stack([rank_in_fov(m, fov) for m in Mk]), fov)
     U = np.stack([norm1(m, fov) for m in Mk]); srt = np.sort(U, axis=0)
@@ -280,8 +265,7 @@ def main():
     print("  target root    : %s   (individual-model baseline)" % a.sal_root)
     print("  consensus root : %s%s" % (CROOT, "   (= target root)" if same_src else ""))
     if same_src:
-        print("  ** consensus inputs are the same as the individual maps (1.0x). The RFI consensus")
-        print("     was built from multi-scale inputs, so do not compare absolute values with the RFI tables. **")
+        print("  consensus inputs are the same maps as the individual targets (1.0x)")
     print("  pool: AUROC >= %.2f, FT %s  ->  n = %d | evaluated targets %d"
           % (a.auc_min, a.pool_ft, len(POOL), len(TARGETS)))
     print("=" * 100)

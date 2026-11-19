@@ -28,7 +28,7 @@ from trainers.dist_utils import (
 
 
 # ------------------------------------------------------------
-# [Added] Choose the AMP (automatic mixed precision) dtype
+# Choose the AMP (automatic mixed precision) dtype
 #  - bf16: supported on recent GPUs (A100/RTX30 and newer). Stable, no GradScaler needed.
 #  - fp16: compatible with older GPUs (V100/T4, etc.). Requires a GradScaler.
 #  - "auto": inspect the hardware and pick bf16 if supported, otherwise fp16.
@@ -51,33 +51,33 @@ class BaseTrainer(ABC):
         cfg = load_yaml(args.config_path)
         self.cfg = dict2namespace(cfg)
 
-        # [Added] Reproducibility: fix random seeds
+        # Reproducibility: fix random seeds
         self.seed = cfg_get(self.cfg, 'seed', 42)
         set_seed(self.seed, deterministic=cfg_get(self.cfg, 'deterministic', False))
 
-        # [Added] Distributed/device setup (DDP under torchrun, otherwise a single device)
+        # Distributed/device setup (DDP under torchrun, otherwise a single device)
         self.distributed, self.device, self.local_rank = setup_distributed()
 
-        # [Added] Pre-flight validation (fail-fast). Exit immediately on bad paths/config, before grabbing GPUs.
+        # Pre-flight validation (fail-fast). Exit immediately on bad paths/config, before grabbing GPUs.
         validate_paths(self.cfg)
         validate_select_metric(self.cfg)
 
-        # [Added] How often (in epochs) to print model_checker (freeze-state check). Default 10.
+        # How often (in epochs) to print model_checker (freeze-state check). Default 10.
         self.check_freq = int(cfg_get(self.cfg.training, 'check_freq', 10) or 10)
 
-        # [Added] Early stopping. If select_metric does not improve for this many consecutive
-        #  evaluations (counted in eval_freq intervals), training stops early. 0/unset disables it (previous behaviour).
+        # Early stopping. If select_metric does not improve for this many consecutive
+        #  evaluations (counted in eval_freq intervals), training stops early. 0/unset disables it.
         #  Note: the lr scheduler (cosine etc.) keeps stepping every epoch regardless of this.
         #    (The scheduler is not made to react to this metric like ReduceLROnPlateau.)
         self.early_stop_patience = int(cfg_get(self.cfg.training, 'early_stop_patience', 0) or 0)
         self.epochs_without_improve = 0
 
-        # [Added] Training-environment info for report.html: number of GPUs / mean time per epoch /
+        # Training-environment info for report.html: number of GPUs / mean time per epoch /
         #  peak GPU memory. epoch_durations holds the actual wall time (s) of each epoch;
         #  GPU memory is reset with reset_peak_memory_stats() at the start of training and
         #  the true peak for this run is read with max_memory_allocated() at the end.
         self.epoch_durations = []
-        # [Added] Per-epoch accumulation of the average time spent in dataloader (IO+augmentation)/
+        # Per-epoch accumulation of the average time spent in dataloader (IO+augmentation)/
         #  forward/backward within a train step (collects train/data_time, train/fwd_time,
         #  train/bwd_time as returned by _train_step).
         self.data_times = []
@@ -101,7 +101,7 @@ class BaseTrainer(ABC):
         self._init_log(cfg)
         # higher is better
         self.val_best_select_metric = -float('inf')
-        # [Added] Keep the classification threshold found on valid so it can be reused on test
+        # Keep the classification threshold found on valid so it can be reused on test
         #  (prevents optimistic bias/leakage from choosing the threshold on test data)
         self.best_val_thresholds = None
 
@@ -112,22 +112,20 @@ class BaseTrainer(ABC):
     def _init_model(self):
         self.model = build_encoder(self.cfg)
 
-        # [Changed] Move to self.device instead of hard-coded .cuda() (works for CPU or any specific GPU)
+        # Move to self.device (works for CPU or any specific GPU)
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 
-        # [Added] Snapshot initial weights before DDP wrapping (i.e. with the original parameter names).
+        # Snapshot initial weights before DDP wrapping (i.e. with the original parameter names).
         #  Used to periodically verify that frozen parameters are not accidentally updated during training.
         self.model_checker = ModelChecker(self.model)
-        # [Added] Keep the initial requires_grad state and the check_with_init result at every check_freq
+        # Keep the initial requires_grad state and the check_with_init result at every check_freq
         #  in structured form so they can be copied into report.html as-is.
         self.initial_requires_grad = self.model_checker.requires_grad_table()
         self.check_history = []
 
         if self.distributed:
-            # [Changed] nn.DataParallel -> DistributedDataParallel (DDP)
-            #  DP is single-process, so GPU utilisation was low. DDP runs one process per GPU,
-            #  which is far more balanced and faster. (Run: torchrun --nproc_per_node=N ...)
+            # DistributedDataParallel (DDP): one process per GPU (run: torchrun --nproc_per_node=N ...)
             #  find_unused_parameters: default False (fast). The current models (linear/partial_ft/lora)
             #  always produce grads for every trainable parameter on each forward, so False is enough.
             #  (Smoke test confirmed "no unused parameters".) If a model has conditional branches in
@@ -140,7 +138,7 @@ class BaseTrainer(ABC):
             )
 
     def unwrap_model(self):
-        # [Added] Unwrap the DDP/DP wrapper and return the underlying model (used for save/eval/load)
+        # Unwrap the DDP/DP wrapper and return the underlying model (used for save/eval/load)
         if isinstance(self.model, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
             return self.model.module
         return self.model
@@ -154,10 +152,8 @@ class BaseTrainer(ABC):
             weight_decay=cfg.weight_decay
         )
 
-        # [Changed] Added warmup support.
-        #  Previously the code ignored the warmup key in the config and always used
-        #  CosineAnnealingLR only (silently ignored). Now, if warmup=True, lr starts near 0 and
-        #  increases linearly over warmup_epochs, then decays with cosine.
+        # Warmup: if warmup=True, lr starts near 0, increases linearly over warmup_epochs,
+        #  then decays with cosine.
         eta_min = cfg.lr * (cfg.lr_decay_rate ** 2)
         warmup = cfg_get(cfg, 'warmup', False)
         warmup_epochs = int(cfg_get(cfg, 'warmup_epochs', 0) or 0)
@@ -176,7 +172,7 @@ class BaseTrainer(ABC):
                 self.optimizer, T_max=cfg.epochs, eta_min=eta_min
             )
 
-        # [Changed] Automatic AMP dtype selection + GradScaler only for fp16
+        # Automatic AMP dtype selection + GradScaler only for fp16
         self.enable_amp = cfg.enable_amp
         self.amp_dtype = resolve_amp_dtype(cfg_get(cfg, 'amp_dtype', 'auto'))
         use_scaler = self.enable_amp and (self.amp_dtype == torch.float16)
@@ -189,11 +185,11 @@ class BaseTrainer(ABC):
     def _init_dataloader(self):
         cfg = self.cfg.training
         num_workers = cfg.num_workers
-        # [Added] Apply persistent_workers/prefetch_factor only when there are workers
+        # Apply persistent_workers/prefetch_factor only when there are workers
         persistent = num_workers > 0
         prefetch = cfg_get(cfg, 'prefetch_factor', 4) if num_workers > 0 else None
 
-        # [Added] Generator for reproducible shuffling (fixed seed)
+        # Generator for reproducible shuffling (fixed seed)
         generator = torch.Generator()
         generator.manual_seed(self.seed)
 
@@ -201,7 +197,7 @@ class BaseTrainer(ABC):
         self.train_sampler = None
         for sp in ['train', 'valid', 'test']:
             if sp == 'train' and self.distributed:
-                # [Added] Under DDP, DistributedSampler splits the data per GPU (process).
+                # Under DDP, DistributedSampler splits the data per GPU (process).
                 sampler = DistributedSampler(
                     self.datasets[sp], shuffle=True, seed=self.seed, drop_last=True
                 )
@@ -215,24 +211,24 @@ class BaseTrainer(ABC):
                 self.datasets[sp],
                 batch_size=cfg.batch_size,
                 num_workers=num_workers,
-                pin_memory=(self.device.type == 'cuda'),  # [Changed] pin_memory only on CUDA (avoids a warning on CPU)
+                pin_memory=(self.device.type == 'cuda'),  # pin_memory only on CUDA (avoids a warning on CPU)
                 shuffle=shuffle,
                 sampler=sampler,
-                persistent_workers=persistent, # [Added] avoid re-creating workers every epoch (less overhead)
-                prefetch_factor=prefetch,      # [Added] batches prefetched per worker (hides I/O)
-                drop_last=(sp == 'train'),     # [Added] drop the last partial batch (stable stats/DDP balance)
-                worker_init_fn=seed_worker,    # [Added] fixed worker seeds (reproducible augmentation)
+                persistent_workers=persistent, # avoid re-creating workers every epoch (less overhead)
+                prefetch_factor=prefetch,      # batches prefetched per worker (hides I/O)
+                drop_last=(sp == 'train'),     # drop the last partial batch (stable stats/DDP balance)
+                worker_init_fn=seed_worker,    # fixed worker seeds (reproducible augmentation)
                 generator=generator,
             )
 
     def _init_log(self, _cfg):
-        # [Added] Since the same desc may be run repeatedly (re-running the same config, reproducibility checks, etc.),
+        # Since the same desc may be run repeatedly (re-running the same config, reproducibility checks, etc.),
         #  append the actual run time (KST) to the folder name so each run gets a new folder.
         #  Note: with --resume we must keep using "that" folder (the one created by the original run,
         #  whose name already carries a timestamp), so no new timestamp is appended.
         self.train_start_time = now_kst()
         if self.resume:
-            # [Changed] Continue in the folder that actually contains the resume checkpoint.
+            # Continue in the folder that actually contains the resume checkpoint.
             #  (Its name already has the timestamp from the first run, so it must not be rebuilt
             #  from desc - the naming rule differs from the else branch below.)
             self.save_path = Path(self.resume_path).resolve().parent
@@ -240,7 +236,7 @@ class BaseTrainer(ABC):
             ts = self.train_start_time.strftime('%Y%m%d_%H%M%S')
             self.save_path = Path(self.cfg.save_root)/f"{self.cfg.desc}_{ts}"
 
-        # [Changed] Saving/logging/wandb only on rank 0 (the main process).
+        # Saving/logging/wandb only on rank 0 (the main process).
         #  Under DDP, all processes writing at once would cause file conflicts/duplicates.
         if is_main_process():
             self.save_path.mkdir(parents=True, exist_ok=True)
@@ -250,20 +246,18 @@ class BaseTrainer(ABC):
                     entity=self.cfg.wandb_entity,
                     project=self.cfg.wandb_project,
                     name=self.cfg.desc,
-                    config=_cfg,  # [Added] also record this experiment's hyperparameters in the wandb run
+                    config=_cfg,  # also record this experiment's hyperparameters in the wandb run
                 )
 
-            # [Added] Save per-epoch metrics locally as CSV/plot regardless of whether wandb is used.
+            # Save per-epoch metrics locally as CSV/plot regardless of whether wandb is used.
             #  save_path/metrics.csv and save_path/training_curves.png are updated every epoch, so
             #  the learning curves can be followed from files without wandb (or alongside it).
-            #  [Changed] Only append to an existing metrics.csv when resume=True (actually resuming via --resume).
-            #  Previously, if an old metrics.csv was left in the same desc folder without resuming
-            #  (e.g. re-running the same config), old rows piled up and epochs were duplicated (bug).
+            #  An existing metrics.csv is appended to only when resuming (--resume).
             self.metrics_logger = MetricsLogger(
                 self.save_path, select_metric_key=self.cfg.select_metric, resume=self.resume
             )
 
-            # [Added] Record experiment provenance.
+            # Record experiment provenance.
             #  - train.log: everything printed to the terminal (print/tqdm) during training.
             #  - git_commit.txt/git_diff.patch: exact code state that produced this experiment (commit + uncommitted changes).
             #  - code_snapshot/: copy of the actual source code (.py) that can be opened without git.
@@ -288,7 +282,7 @@ class BaseTrainer(ABC):
         raise NotImplementedError
 
     def fit(self):
-        # [Added] Wrapped so the stdout/stderr Tee (for train.log) is always restored even if
+        # Wrapped so the stdout/stderr Tee (for train.log) is always restored even if
         #  training raises. Otherwise (especially when one process builds the trainer several times,
         #  e.g. a hyperparameter sweep in a notebook) all later print() output keeps flowing into
         #  the failed experiment's log file. restore() is safe to call twice.
@@ -303,13 +297,13 @@ class BaseTrainer(ABC):
         stop_training = False
         for epoch in trange(self.start_epoch, self.cfg.training.epochs + 1,
                             desc='training epochs', disable=not is_main_process()):
-            # [Added] Expose the last epoch actually reached (e.g. to check "after how many epochs
+            # Expose the last epoch actually reached (e.g. to check "after how many epochs
             #  it stopped" when sweeping several settings). Updated on every loop iteration, so it is
             #  always accurate even if early stopping ends training midway.
             self.last_epoch = epoch
             epoch_start_time = time.time()
 
-            # [Added] The DDP sampler needs set_epoch every epoch to change the shuffle seed,
+            # The DDP sampler needs set_epoch every epoch to change the shuffle seed,
             #  so the data is shuffled in a different order each epoch.
             if self.train_sampler is not None:
                 self.train_sampler.set_epoch(epoch)
@@ -317,14 +311,13 @@ class BaseTrainer(ABC):
             metrics = self._train_step()
 
             if epoch % self.cfg.training.eval_freq == 0:
-                # [Changed] Evaluation/model selection/saving only on rank 0.
+                # Evaluation/model selection/saving only on rank 0.
                 if is_main_process():
                     valid_metrics, valid_thresholds = self._eval_step()
                     metrics.update(valid_metrics)
 
-                    # [Added] Test is also computed at the same interval as valid (eval_freq) and stored in
-                    #  metrics.csv. Previously test was computed only once with the best checkpoint after
-                    #  training, so its trajectory during training could not be seen as a curve.
+                    # Test is also computed at the same interval as valid (eval_freq) and stored in
+                    #  metrics.csv, so its trajectory during training can be plotted.
                     #  Note: this is a "reference record" that never takes part in model selection (choosing
                     #  the best checkpoint); the final saved/reported test_metrics.json is still computed after
                     #  training below by reloading the best checkpoint. The threshold found on this epoch's
@@ -335,7 +328,7 @@ class BaseTrainer(ABC):
                     curve_freq = cfg_get(self.cfg.training, 'curve_freq', self.cfg.training.eval_freq)
                     if epoch % curve_freq == 0:
 
-                        # [Added] Also compute train metrics (in eval mode, reusing the valid threshold) so
+                        # Also compute train metrics (in eval mode, reusing the valid threshold) so
                         #  train/valid/test can all be compared in metrics.csv/training_curves.png.
                         #  Note: train/loss (the actual training loss from _train_step above) is kept; only
                         #  classification metrics such as select_metric are taken from this eval-mode pass, without overwriting it.
@@ -343,7 +336,7 @@ class BaseTrainer(ABC):
                         train_metrics_epoch.pop('train/loss', None)
                         metrics.update(train_metrics_epoch)
 
-                    # [Changed] Clear error if the select_metric key is missing (config mistake)
+                    # Clear error if the select_metric key is missing (config mistake)
                     key = f'valid/{self.cfg.select_metric}'
                     if key not in valid_metrics:
                         raise KeyError(
@@ -354,14 +347,14 @@ class BaseTrainer(ABC):
                     if select_metric > self.val_best_select_metric:
                         self.val_best_select_metric = select_metric
                         self.epochs_without_improve = 0
-                        # [Added] Save the valid threshold together with the best model -> reused on test
+                        # Save the valid threshold together with the best model -> reused on test
                         self.best_val_thresholds = valid_thresholds
                         self.save_model(epoch, fn=self.save_path/'ckpt_best.pth',
                                         extra={'val_thresholds': valid_thresholds})
                     else:
                         self.epochs_without_improve += 1
 
-                    # [Added] Early stopping. The lr scheduler (cosine etc.) is step()ed every epoch
+                    # Early stopping. The lr scheduler (cosine etc.) is step()ed every epoch
                     #  below regardless of this decision, so early stopping does not touch
                     #  the lr schedule (not made to behave like ReduceLROnPlateau).
                     if (self.early_stop_patience > 0
@@ -375,14 +368,14 @@ class BaseTrainer(ABC):
             if is_main_process() and self.cfg.use_wandb:
                 wandb.log(metrics, step=epoch)
 
-            # [Added] Always append to the CSV and redraw/save the plot, regardless of wandb.
+            # Always append to the CSV and redraw/save the plot, regardless of wandb.
             #  Both files are updated every epoch, so reopening them during training shows
             #  the curves up to that point (effectively live monitoring).
             if is_main_process():
                 self.metrics_logger.log(epoch, metrics)
                 self.metrics_logger.plot()
 
-            # [Added] Print an epoch summary to stdout so progress is visible without wandb
+            # Print an epoch summary to stdout so progress is visible without wandb
             if is_main_process():
                 msg = f"[epoch {epoch}] train/loss={metrics.get('train/loss', float('nan')):.4f}"
                 key = f'valid/{self.cfg.select_metric}'
@@ -391,7 +384,7 @@ class BaseTrainer(ABC):
                             f" | {key}={metrics[key]:.4f} | best={self.val_best_select_metric:.4f}")
                 print(msg, flush=True)
 
-            # [Added] model_checker: check that frozen parameters really do not change, printed only
+            # model_checker: check that frozen parameters really do not change, printed only
             #  every check_freq (default 10) epochs rather than every epoch (too much log otherwise).
             if epoch % self.check_freq == 0 and is_main_process():
                 print(f"[epoch {epoch}] model parameter check (vs. initial weights):", flush=True)
@@ -404,7 +397,7 @@ class BaseTrainer(ABC):
 
             self.scheduler.step()  # all processes step identically (always called, regardless of early stop)
 
-            # [Added] Record for "mean time per epoch" in report.html (includes train+eval, measured)
+            # Record for "mean time per epoch" in report.html (includes train+eval, measured)
             if is_main_process():
                 self.epoch_durations.append(time.time() - epoch_start_time)
                 if 'train/data_time' in metrics:
@@ -412,7 +405,7 @@ class BaseTrainer(ABC):
                     self.fwd_times.append(metrics['train/fwd_time'])
                     self.bwd_times.append(metrics['train/bwd_time'])
 
-            # [Added] Broadcast the early-stop decision made on rank 0 to all processes, then exit.
+            # Broadcast the early-stop decision made on rank 0 to all processes, then exit.
             #  (Under DDP all ranks must follow the same epoch flow, so rank 0 alone must not break)
             stop_training = broadcast_bool(stop_training, self.device)
             if stop_training:
@@ -423,7 +416,7 @@ class BaseTrainer(ABC):
         '''
         barrier()
         if is_main_process():
-            # [Changed] Instead of reusing self.model/self.loaders from the training loop, rebuild
+            # Instead of reusing self.model/self.loaders from the training loop, rebuild
             #  the model "only from what is stored in" ckpt_best.pth and run inference on the test set
             #  once more, cleanly (trainers/classification_trainer.py._final_inference).
             print("Final results: rebuilding the model from ckpt_best.pth only and re-running inference on the test set...")
@@ -447,19 +440,19 @@ class BaseTrainer(ABC):
                 keep = [c for c in ['image_path', 'label', 'grade', 'dataset', 'pred'] if c in edf.columns]
                 edf[keep].to_csv(self.save_path / 'external_predictions.csv', index=False)
                 print("Saved external evaluation: external_metrics.json / external_predictions.csv")
-            # [Added] Record in the report, as an absolute path, exactly which checkpoint file produced the
+            # Record in the report, as an absolute path, exactly which checkpoint file produced the
             #  final test metrics (test_metrics.json is always pure inference from a model rebuilt from
             #  this file alone - see "Why are the final results re-inferred?" in
             #  trainers/experiment.py).
             test_model_ckpt_path = str((self.save_path / 'ckpt_best.pth').resolve())
             if self.cfg.use_wandb:
                 wandb.log(update_prefix(test_metrics_clean, 'test'), step=epoch)
-            # [Changed] Training may have ended earlier than cfg.training.epochs because of early stopping,
+            # Training may have ended earlier than cfg.training.epochs because of early stopping,
             #  so record the last epoch actually reached (the loop's epoch variable, which keeps its
             #  last value even after break) rather than "the configured total number of epochs".
             self.save_model(epoch)
 
-            # [Added] Training-environment info: number of GPUs / mean time per epoch / measured peak GPU memory.
+            # Training-environment info: number of GPUs / mean time per epoch / measured peak GPU memory.
             #  On CPU (as in these examples) the GPU-related values naturally become 0/None.
             def _avg(xs):
                 return sum(xs) / len(xs) if xs else None
@@ -468,7 +461,7 @@ class BaseTrainer(ABC):
                 'n_gpus': get_world_size() if torch.cuda.is_available() else 0,
                 'gpu_name': torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
                 'avg_epoch_seconds': _avg(self.epoch_durations),
-                # [Changed] Time per epoch spent in dataloader (IO+augmentation)/forward/backward within
+                # Time per epoch spent in dataloader (IO+augmentation)/forward/backward within
                 #  train steps (mean over epochs of the per-epoch totals for the whole run).
                 'avg_data_seconds': _avg(self.data_times),
                 'avg_fwd_seconds': _avg(self.fwd_times),
@@ -478,14 +471,14 @@ class BaseTrainer(ABC):
                 ),
             }
 
-            # [Added] Automatic experiment report: data/model/hyperparameters/start-end time (KST)/
+            # Automatic experiment report: data/model/hyperparameters/start-end time (KST)/
             #  learning curves/final test metrics, collected in a single report.html.
             generate_report(
                 self.save_path,
                 desc=self.cfg.desc,
                 cfg_dict=self._raw_cfg,
                 model=self.unwrap_model(),
-                # [Changed] fast_linear replaces self.datasets with cached feature Datasets
+                # fast_linear replaces self.datasets with cached feature Datasets
                 #  (which lack ds.df etc., leaving the report's data table/sample images empty), so if
                 #  report_datasets holding the original image Datasets exists, use it instead.
                 datasets=getattr(self, 'report_datasets', None) or getattr(self, 'datasets', {}),
@@ -506,15 +499,15 @@ class BaseTrainer(ABC):
                 check_history=self.check_history,
                 env_info=env_info,
             )
-            # [Added] Restore stdout/stderr. When one process builds the trainer several times
+            # Restore stdout/stderr. When one process builds the trainer several times
             #  (e.g. a hyperparameter sweep in a notebook), logs keep nesting unless restored.
             self._log_restore()
 
-        # [Added] Tear down the distributed process group
+        # Tear down the distributed process group
         cleanup_distributed()
 
     def _model_state_to_save(self):
-        # [Added] Select which model parameters to save.
+        # Select which model parameters to save.
         #  With save_trainable_only=True, the frozen backbone is excluded and only "trainable"
         #  parameters are saved. linear/lora shrink to a few KB to a few MB, saving a lot of disk.
         #  (The original backbone weights live in pretrained_root, so on restore they are reloaded
@@ -533,7 +526,7 @@ class BaseTrainer(ABC):
             'scheduler': self.scheduler.state_dict(),
             'scaler': self.scaler.state_dict(),
             'epoch': epoch,
-            # [Added] Save-mode metadata (for restoring). Trainable-only checkpoints must be loaded with strict=False.
+            # Save-mode metadata (for restoring). Trainable-only checkpoints must be loaded with strict=False.
             'save_trainable_only': bool(cfg_get(self.cfg.training, 'save_trainable_only', True)),
         }
         if extra:
@@ -543,16 +536,16 @@ class BaseTrainer(ABC):
                    )
 
     def load_model(self, fn):
-        # [Changed] map_location=self.device, weights_only=False (a trusted checkpoint we created).
+        # map_location=self.device, weights_only=False (a trusted checkpoint we created).
         ckpt = torch.load(fn, map_location=self.device, weights_only=False)
         model = self.unwrap_model()
-        # [Changed] strict=False: trainable-only checkpoints have no backbone keys.
+        # strict=False: trainable-only checkpoints have no backbone keys.
         #  (the backbone is already loaded from pretrained weights in build_encoder)
         model.load_state_dict(ckpt['model'], strict=False)
         self.optimizer.load_state_dict(ckpt['optimizer'])
         self.scheduler.load_state_dict(ckpt['scheduler'])
         self.scaler.load_state_dict(ckpt['scaler'])
         self.start_epoch = ckpt['epoch'] + 1
-        # [Added] Restore the saved valid threshold (reused for test evaluation)
+        # Restore the saved valid threshold (reused for test evaluation)
         if ckpt.get('val_thresholds') is not None:
             self.best_val_thresholds = ckpt['val_thresholds']
