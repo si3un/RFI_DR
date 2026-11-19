@@ -97,7 +97,7 @@ def consensus_rule(rule, Mk, fov):
     geo         = geometric mean of unit-sum maps (ViTMix-style multiplicative fusion)
     geo_dropT   = geometric mean after dropping the T lowest values at each pixel (trimmed)
     arith_trimT = arithmetic mean of unit-sum maps after dropping the T highest and the T lowest values at each pixel
-                  (symmetric trimmed mean; same rule as UnitSum-Arith-T{T}x{T} in consensus_rules_v5_means.py)"""
+                  (symmetric trimmed mean; same rule as UnitSum-Arith-T{T}x{T} in eval_consensus_localization.py)"""
     if rule == "hybrid":
         return hybrid_mean_q75(np.stack([rank_in_fov(m, fov) for m in Mk]), fov)
     U = np.stack([norm1(m, fov) for m in Mk]); srt = np.sort(U, axis=0)

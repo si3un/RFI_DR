@@ -106,11 +106,11 @@ its header.
 | 2e. Prediction-level ensembles | `interpreters/ensemble_auroc.py` | Supp. Table S3 |
 | 3. Saliency maps, annotated datasets (gradient-weighted attention rollout, 448 x 448) | `interpreters/snu_gen_saliency_attn.py --attn_mode grad_rollout` | Figure 2, Supp. Table S5 |
 | 3b. Saliency maps, external images | `interpreters/gen_saliency_attn.py`; classifier-only configurations: `interpreters/gen_saliency_attn_multiscale_keys.py --scales 1.0` | Table 3 |
-| 4. Per-case optimal Dice of individual maps | `interpreters/consensus_rules_v2.py` | Figure 2, Supp. Table S5 |
-| 4b. Consensus map (L1 normalization, trimmed mean discarding 2 values at each end) and its Dice | `interpreters/consensus_rules_v5_means.py` (rule `UnitSum-Arith-T2x2`) | Figure 2, Supp. Tables S5, S7 |
+| 4. Per-case optimal Dice of individual maps | `interpreters/eval_individual_localization.py` | Figure 2, Supp. Table S5 |
+| 4b. Consensus map (L1 normalization, trimmed mean discarding 2 values at each end) and its Dice | `interpreters/eval_consensus_localization.py` (rule `UnitSum-Arith-T2x2`) | Figure 2, Supp. Tables S5, S7 |
 | 4c. Reference rows (random, lesion-location, perfect score using saliency resolution) | `interpreters/baseline_avgmask_patchceiling.py` | Supp. Table S5 |
 | 4d. Table with bootstrap CIs | `interpreters/supp_table_s5_dice.py` | Supp. Table S5 |
-| 4e. Consensus vs individual configurations (paired, Holm) | `interpreters/consensus_rules_stats.py` | Results |
+| 4e. Consensus vs individual configurations (paired, Holm) | `interpreters/compare_consensus_vs_individual.py` | Results |
 | 4f. Normalization x trimming comparison | `analysis/supp_s7_norm_trim.py` | Supp. Table S7 |
 | 5. CoSA on 2,617 unannotated external images (full, self- and lineage-leave-one-out) | `interpreters/ext_consensus_similarity_loo.py --rule arith_trim2` | Table 3, Supp. Table S6 |
 | 5b. Trimming one value at each end | same script, `--rule arith_trim1`; `interpreters/table3_compare.py` | Supp. Table S6 |

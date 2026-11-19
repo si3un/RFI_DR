@@ -7,7 +7,7 @@ and from one or more 'new' pairs, prints per-model Spearman agreement (rho_full_
 AUC side by side, rank changes, the top-agreement model, and -- if per-dataset Dice files are given -- the Spearman
 rank correlation across the 14 pool configurations between agreement and mean per-case optimal Dice.
 
-Dice input: *_rules_summary.csv files from consensus_rules_v2.py (SNU); dataset is taken from the file-name prefix
+Dice input: *_rules_summary.csv files from eval_individual_localization.py (SNU); dataset is taken from the file-name prefix
 (eophtha_/idrid_/fgadr_), rows with kind == individual, columns method (tag) and dice.
 
 Usage:

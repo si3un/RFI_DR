@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-consensus_rules_v5_means.py -- consensus rules with alternative means, normalisations and trimming.
+eval_consensus_localization.py -- consensus map (equation 1) and its per-case optimal Dice, with alternative means,
+normalisations and trimming for comparison.
 
 Questions addressed and what this script computes
   * "why the geometric mean and not the arithmetic (or harmonic) mean?"      -> 3 means
@@ -38,7 +39,7 @@ No lesion mask is used to build any map; masks are used only to score them.
 
 --shard i/n evaluates only the images whose position in the sorted image list is i modulo n (all lesion-type cases of
 an image stay together) and writes {ds}_shard{i}of{n}_*.csv; run n shards in parallel and read the per-case files
-together (consensus_rules_stats.py takes globs).
+together (compare_consensus_vs_individual.py takes globs).
 
 Outputs (out_dir):
   {ds}[_shard]_rules_per_case.csv     per case (image x lesion type) and rule: per-case optimal Dice
@@ -47,11 +48,11 @@ Outputs (out_dir):
   {ds}[_shard]_zero_diag_by_model.csv per model: mean share of FOV pixels that are exactly zero
 
 Usage:
-  python interpreters/consensus_rules_v5_means.py --dataset idrid \
+  python interpreters/eval_consensus_localization.py --dataset idrid \
     --root $IDRID_SEG_ROOT \
     --sal_root outputs/idrid_saliency_attn \
     --model_roots models/dr_clean models/ckpts_aux models/_stage \
-    --out_dir outputs/consensus_rules_v5_means
+    --out_dir outputs/consensus_localization
   one-sided trimming only, unit-sum maps, FGADR in 8 parallel shards:
     ... --norms UnitSum --trims L1 L2 L4 U1 U2 U4 --shard 0/8   (and 1/8 ... 7/8)
 """
@@ -109,7 +110,7 @@ def main():
     ap.add_argument("--root", required=True)
     ap.add_argument("--sal_root", required=True, help="1.0x single-scale maps, e.g. outputs/idrid_saliency_attn")
     ap.add_argument("--model_roots", nargs="+", required=True)
-    ap.add_argument("--out_dir", default="outputs/consensus_rules_v5_means")
+    ap.add_argument("--out_dir", default="outputs/consensus_localization")
     ap.add_argument("--types", nargs="+", default=None)
     ap.add_argument("--auc_min", type=float, default=0.92)
     ap.add_argument("--grid", default="ultrafine")

@@ -2,7 +2,7 @@
 (min-max, L1 = unit sum, percentile rank) and amounts of trimming (none, one or two values at each end;
 arithmetic mean of the remaining values).
 
-Reads the per-case files written by interpreters/consensus_rules_v5_means.py
+Reads the per-case files written by interpreters/eval_consensus_localization.py
 ({dataset}[_shardXofY]_rules_per_case.csv; method names such as 'UnitSum-Arith-T2x2'). FGADR shards are pooled.
 
 Usage:

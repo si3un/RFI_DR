@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-consensus_rules_stats.py -- image-level paired statistics for the consensus-rule experiments
+compare_consensus_vs_individual.py -- image-level paired statistics, consensus map vs individual configurations
 (same convention as the manuscript, M6): per-case optimal Dice differences are averaged within each image,
 tested with the two-sided Wilcoxon signed-rank test on image-level differences, bootstrap 95% CI resamples
 images (2,000, seed 42), Holm correction over the comparisons within each dataset.
 
-Inputs: one or more *_rules_per_case.csv files (from consensus_rules_v2.py runs); rows are concatenated and
+Inputs: one or more *_rules_per_case.csv files (from eval_individual_localization.py runs); rows are concatenated and
 de-duplicated on (dataset, image_id, lesion_type, method), the last file winning.
 
 Usage (SNU):
-  python interpreters/consensus_rules_stats.py \
-    --per_case outputs/consensus_rules_v3/*_rules_per_case.csv outputs/consensus_rules_v5/*_rules_per_case.csv \
+  python interpreters/compare_consensus_vs_individual.py \
+    --per_case outputs/individual_localization/*_rules_per_case.csv outputs/consensus_localization/*_rules_per_case.csv \
     --consensus "GeoMean drop2" "GeoMean raw (ViTMix)" "HybridMeanQ75 (current)" \
     --vs "RETFound-DINOv2-LoRA" "DINOv2-LoRA" "HybridMeanQ75 (current)" \
-    --out_dir outputs/consensus_rules_stats
+    --out_dir outputs/consensus_vs_individual
 """
 import os, glob, argparse
 import numpy as np, pandas as pd
@@ -51,7 +51,7 @@ def main():
     ap.add_argument("--consensus", nargs="+", required=True)
     ap.add_argument("--vs", nargs="+", default=["RETFound-DINOv2-LoRA", "DINOv2-LoRA", "HybridMeanQ75 (current)"])
     ap.add_argument("--all_individuals", action="store_true", help="also compare against every individual configuration")
-    ap.add_argument("--out_dir", default="outputs/consensus_rules_stats")
+    ap.add_argument("--out_dir", default="outputs/consensus_vs_individual")
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
     files = [f for pat in a.per_case for f in sorted(glob.glob(pat))]

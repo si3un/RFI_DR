@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-consensus_rules_v2.py -- compares consensus construction rules broadly,
+eval_individual_localization.py -- per-case optimal Dice of the individual saliency maps (and alternative consensus rules),
 and score every map with metrics other than Dice.
 
 Rules (same pool = AUROC>=0.92, n=14, multi-scale inputs; no GT used)
@@ -27,11 +27,11 @@ Outputs: {out_dir}/{dataset}_rules_per_case.csv, {dataset}_rules_summary.csv,
          {dataset}_binary_rules_per_case.csv, {dataset}_binary_rules.csv
 
 Usage (SNU):
-  python interpreters/consensus_rules_v2.py --dataset idrid \
+  python interpreters/eval_individual_localization.py --dataset idrid \
     --root $IDRID_SEG_ROOT \
     --sal_root outputs/idrid_saliency_ms8 --single_root outputs/idrid_saliency_ms8_cls \
     --model_roots models/dr_clean models/ckpts_aux models/_stage \
-    --out_dir outputs/consensus_rules_v2 --grid ultrafine
+    --out_dir outputs/individual_localization --grid ultrafine
 """
 import os, sys, argparse
 import numpy as np, pandas as pd, torch
@@ -290,7 +290,7 @@ def main():
     ap.add_argument("--sal_root", default="")
     ap.add_argument("--single_root", required=True)
     ap.add_argument("--model_roots", nargs="+", required=True)
-    ap.add_argument("--out_dir", default="outputs/consensus_rules_v4")
+    ap.add_argument("--out_dir", default="outputs/individual_localization")
     ap.add_argument("--types", nargs="+", default=None)
     ap.add_argument("--auc_min", type=float, default=0.92)
     ap.add_argument("--grid", default="ultrafine")
