@@ -83,7 +83,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--thr_dir", default="", help="old format: threshold_optimal_k per-case CSVs (HybridMeanQ75)")
     ap.add_argument("--per_case", nargs="*", default=[], help="new format: eval_individual_localization *_rules_per_case.csv globs (individuals + consensus rule)")
-    ap.add_argument("--cons_method", default="GeoMean drop4", help="consensus method name in --per_case CSVs")
+    ap.add_argument("--cons_method", default="UnitSum-Arith-T2x2", help="consensus method name in --per_case CSVs")
     ap.add_argument("--cons_rule", choices=["hybrid", "geo_trim", "arith_trim"], default="hybrid", help="how the consensus panel is built")
     ap.add_argument("--cons_trim", type=int, default=4, help="geo_trim: number of lowest values dropped per pixel")
     ap.add_argument("--cons_sal", default="ms8", help="consensus material: {ds}_saliency_<this> (ms8 = old multi-scale, attn = 1.0x)")

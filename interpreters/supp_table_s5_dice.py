@@ -32,7 +32,7 @@ def boot_ci(per_img_sum, per_img_n, n=2000, seed=42):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per_case", nargs="+", required=True)
-    ap.add_argument("--consensus", default="GeoMean drop4")
+    ap.add_argument("--consensus", default="UnitSum-Arith-T2x2")
     ap.add_argument("--baseline", default="outputs/baseline_v1/baseline_summary.csv")
     ap.add_argument("--out", default="outputs/supp_table_s5_dice.csv")
     a = ap.parse_args()
